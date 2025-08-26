@@ -7,6 +7,10 @@
 
 #include <unordered_set>
 
+// In 'n' out
+#include "node/submodules/io/Input.hpp"
+#include "node/submodules/io/Output.hpp"
+// Common
 #include "node/submodules/Monochrome.hpp"
 
 GUI::GUI(SDL_Window* window, SDL_Renderer* renderer)
@@ -31,6 +35,17 @@ bool GUI::initialize()
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.IniFilename = nullptr; // Disable .ini file loading
+
+    // Load Montserrat fonts
+    io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Black.ttf", 18.0f);
+    io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Bold.ttf", 18.0f);
+    io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-SemiBold.ttf", 18.0f);
+    io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Medium.ttf", 18.0f);
+    io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Regular.ttf", 18.0f);
+    io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Italic.ttf", 18.0f);
+    io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Light.ttf", 18.0f);
+    io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Thin.ttf", 18.0f);
+    // Add more styles if needed
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -120,6 +135,20 @@ void GUI::newFrame()
         }
     }
 
+    // Create unique input and output nodes only once and draw them first
+    static std::unique_ptr<InputNode> input = std::make_unique<InputNode>();
+    static std::unique_ptr<OutputNode> output = std::make_unique<OutputNode>();
+    
+    // unfortunately we have to do this...
+    static bool initialized = false;
+    if (!initialized) {
+        ImNodes::SetNodeScreenSpacePos(input->GetId(), ImVec2(60, 50));
+        ImNodes::SetNodeScreenSpacePos(output->GetId(), ImVec2(900, 350));
+        initialized = true;
+    }
+    input->Draw();
+    output->Draw();
+
     for (const auto& node : n_nodes) {
         node->Draw();
     }
@@ -167,7 +196,7 @@ std::unique_ptr<NodeBase> GUI::createNode(NodeMenu::NodeType type)
 {
     switch (type)
     {
-    case NodeMenu::NodeType::Monochrome:
+    case NodeMenu::NodeType::MonochromeNode:
         return std::make_unique<MonochromeNode>();
         break;
     default:

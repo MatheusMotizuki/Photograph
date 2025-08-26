@@ -13,23 +13,32 @@ public:
     NodeMenu() = default;
     ~NodeMenu() = default;
 
-    enum class NodeType{
-        RGB_break,
-        RGB_unite,
-        Monochrome,
-        HUE,
+    enum class NodeType{ // types of nodes
+        InputNode,
+        MonochromeNode,
+        OutputNode,
     } nodeType;
+
+    NodeType nodes[3] = {
+        NodeType::InputNode,
+        NodeType::MonochromeNode,
+        NodeType::OutputNode,
+    };
 
     struct MenuItem {
         const char* label;
         NodeType type;
     };
 
-    MenuItem menuItems[4] = {
-        {"RGB break", NodeType::RGB_break},
-        {"RGB unite", NodeType::RGB_unite},
-        {"Monochrome", NodeType::Monochrome},
-        {"HUE", NodeType::HUE}
+    // Always put the new nodes in between the input and output
+    std::vector<MenuItem> items{
+        {"Input node", NodeType::InputNode},
+        // --
+
+        {"Monochrome node", NodeType::MonochromeNode},
+
+        // --
+        {"Output node", NodeType::OutputNode},
     };
 
     bool Draw() {
@@ -51,7 +60,8 @@ public:
             ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.75f, 1.0f), "Add a new node");
             ImGui::Separator();
 
-            for (const auto& item : menuItems) {
+            for(size_t i = 1; i + 1 <items.size(); ++i) {
+                const auto& item = items[i];
                 if (ImGui::MenuItem(item.label)) {
                     nodeType = item.type;
                     created = true;
@@ -59,7 +69,7 @@ public:
                     break;
                 }
             }
-
+            
             ImGui::EndPopup();
         }
 

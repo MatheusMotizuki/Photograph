@@ -39,8 +39,26 @@ protected:
         // For example, you could add sliders, buttons, etc.
     }
 
+    virtual bool ShouldDisplayText() const { return true; }
+
+    void InputText() {
+        if (n_pinType == PinType::Input || n_pinType == PinType::Both) {
+            ImNodes::BeginInputAttribute(n_input_id, ImNodesPinShape_CircleFilled);
+            if (ShouldDisplayText()) ImGui::TextColored(ImVec4(0.702f, 0.702f, 0.702f, 1.f), "input"); else ImGui::Dummy(ImVec2(0, 0));
+            ImNodes::EndInputAttribute();
+        }
+    }
+
+    void OutputText() {
+        if (n_pinType == PinType::Output || n_pinType == PinType::Both) {
+            ImNodes::BeginOutputAttribute(n_output_id, ImNodesPinShape_CircleFilled);
+            if (ShouldDisplayText()) ImGui::TextColored(ImVec4(0.702f, 0.702f, 0.702f, 1.f), "output"); else ImGui::Dummy(ImVec2(0, 0));
+            ImNodes::EndOutputAttribute();
+        }
+    }
+
 public:
-    NodeBase(const std::string& title, PinType pinType = PinType::Both, bool deletable = true, ImVec4 title_col = ImVec4(0.2f, 0.7f, 1.0f, 1.0f))
+    NodeBase(const std::string& title, PinType pinType = PinType::Both, bool deletable = true, ImVec4 title_col = ImVec4(0.7f, 0.6f, 0.9f, 1.0f))
         : n_id(next_id++), n_title(title), n_pinType(pinType), deletable(deletable), n_title_col(title_col) {
         n_input_id = n_id * 10 + 1;   // Input pins end with 1
         n_output_id = n_id * 10 + 2;  // Output pins end with 2
@@ -56,24 +74,18 @@ public:
         ImNodes::BeginNode(n_id);
 
         ImNodes::BeginNodeTitleBar();
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[3]);
         ImGui::TextColored(n_title_col, "%s", n_title.c_str());
+        ImGui::PopFont();
         ImNodes::EndNodeTitleBar();
 
-        if (n_pinType == PinType::Input || n_pinType == PinType::Both) {
-            ImNodes::BeginInputAttribute(n_input_id, ImNodesPinShape_CircleFilled);
-            ImGui::TextColored(ImVec4(0.702f, 0.702f, 0.702f, 1.f), "input");
-            ImNodes::EndInputAttribute();
-        }
+        InputText();
 
         if(n_pinType == PinType::Both){
             ImGui::SameLine();
         }
 
-        if (n_pinType == PinType::Output || n_pinType == PinType::Both) {
-            ImNodes::BeginOutputAttribute(n_output_id, ImNodesPinShape_CircleFilled);
-            ImGui::TextColored(ImVec4(0.702f, 0.702f, 0.702f, 1.f), "output");
-            ImNodes::EndOutputAttribute();
-        }
+        OutputText();
 
         NodeContent(); // this will come from the extended nodes
 
