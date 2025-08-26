@@ -2,6 +2,7 @@
 
 #include "imgui.h"
 #include "imnodes.h"
+#include "style.hpp"
 #include <string>
 
 #include <iostream>
@@ -21,26 +22,15 @@ private:
     int n_output_id;
 
     bool deletable;
+    
+    NodeStyle style;
 
     void SetNodeStyle(){
-        ImNodes::PushStyleVar(ImNodesStyleVar_NodeBorderThickness, 1.7f);
-        ImNodes::PushColorStyle(ImNodesCol_NodeOutline, IM_COL32(58, 58, 58, 255));
-        ImNodes::PushColorStyle(ImNodesCol_NodeBackground, IM_COL32(30, 30, 30, 255));
-        ImNodes::PushColorStyle(ImNodesCol_NodeBackgroundHovered, IM_COL32(37, 37, 37, 255));
-        ImNodes::PushColorStyle(ImNodesCol_NodeBackgroundSelected, IM_COL32(41, 41, 41, 255));
-        
-        ImNodes::PushAttributeFlag(ImNodesAttributeFlags_EnableLinkDetachWithDragClick | ImNodesAttributeFlags_EnableLinkCreationOnSnap);
-        ImNodes::PushColorStyle(ImNodesCol_TitleBar, IM_COL32(41, 41, 41, 255));
-        ImNodes::PushColorStyle(ImNodesCol_TitleBarHovered, IM_COL32(51, 51, 51, 255));
-        ImNodes::PushColorStyle(ImNodesCol_TitleBarSelected, IM_COL32(58, 58, 58, 255));
-        
-        ImNodes::PushColorStyle(ImNodesCol_Pin, IM_COL32(117, 117, 117, 255));
-        ImNodes::PushColorStyle(ImNodesCol_PinHovered, IM_COL32(0, 255, 255, 255));
+        style.SetStyle();
     };
 
     void ResetStyle() {
-        ImNodes::PopStyleVar();
-        ImNodes::PopColorStyle(); // Pop all color styles pushed in SetNodeStyle
+        style.PopStyle();
     };
 
 protected:
@@ -90,6 +80,8 @@ public:
         ImNodes::EndNode();
         ResetStyle();
     }
+
+    bool IsProtected() const { return deletable; }
 
     int GetId() const { return n_id; }
 

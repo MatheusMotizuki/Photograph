@@ -80,12 +80,18 @@ void GUI::setStyle()
 {
     ImNodes::PushColorStyle(ImNodesCol_GridBackground, IM_COL32(18, 18, 18, 255));
     ImNodes::PushColorStyle(ImNodesCol_GridLine, IM_COL32(50, 50, 50, 95));
+
+    ImNodes::PushColorStyle(ImNodesCol_BoxSelector, IM_COL32(138, 43, 226, 35));
+    ImNodes::PushColorStyle(ImNodesCol_BoxSelectorOutline, IM_COL32(90, 20, 140, 180));
 }
 
 void GUI::popStyle()
 {
     ImNodes::PopColorStyle(); // GridLine
     ImNodes::PopColorStyle(); // GridBackground
+
+    ImNodes::PopColorStyle(); // BoxSelector
+    ImNodes::PopColorStyle(); // BoxSelectorOutline
 }
 
 void GUI::newFrame()
@@ -131,6 +137,7 @@ void GUI::newFrame()
         n_nodes.erase(
             std::remove_if(n_nodes.begin(), n_nodes.end(),
                 [&death_marks](const std::unique_ptr<NodeBase>& node){
+                    if (!node->IsProtected()) return false;
                     if (death_marks.count(node->GetId()) > 0) {
                         std::cout << "Removing node with ID: " << node->GetId() << std::endl;
                         return true;
