@@ -3,7 +3,7 @@
 #include "node/NodeBase.hpp"
 #include <iostream>
 
-class MonochromeNode : public NodeBase {
+class BlurNode : public NodeBase {
 private:
 // skip
 protected:
@@ -16,10 +16,10 @@ protected:
     }
 
     unsigned int GetBorderColor() const override {
-        return IM_COL32(0, 255, 255, 255);
+        return IM_COL32(255, 128, 0, 255);
     }
 public:
-    MonochromeNode() : NodeBase("Monochrome Node", PinType::Both, true, 
-                                ImVec4(0.0f, 1.0f, 1.0f, 1.0f)) {}
+    BlurNode() : NodeBase("Blur Node", PinType::Both, true, 
+                                ImVec4(1.0f, 0.5f, 0.0f, 1.0f)) {}
     //
 };

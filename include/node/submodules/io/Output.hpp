@@ -27,7 +27,7 @@ protected:
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
         ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(80, 255, 180, 255));
     
-        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[4]);
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[11]);
 
         ImGui::Button("Download image", ImVec2(256, 30));
 

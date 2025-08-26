@@ -16,14 +16,9 @@ public:
     enum class NodeType{ // types of nodes
         InputNode,
         MonochromeNode,
+        BlurNode,
         OutputNode,
     } nodeType;
-
-    NodeType nodes[3] = {
-        NodeType::InputNode,
-        NodeType::MonochromeNode,
-        NodeType::OutputNode,
-    };
 
     struct MenuItem {
         const char* label;
@@ -36,6 +31,7 @@ public:
         // --
 
         {"Monochrome node", NodeType::MonochromeNode},
+        {"Blur node", NodeType::BlurNode},
 
         // --
         {"Output node", NodeType::OutputNode},
@@ -60,7 +56,8 @@ public:
             ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.75f, 1.0f), "Add a new node");
             ImGui::Separator();
 
-            for(size_t i = 1; i + 1 <items.size(); ++i) {
+            ImGui::Spacing();
+            for (size_t i = 1; i + 1 < items.size(); ++i) {
                 const auto& item = items[i];
                 if (ImGui::MenuItem(item.label)) {
                     nodeType = item.type;
@@ -68,8 +65,8 @@ public:
                     ImGui::CloseCurrentPopup();
                     break;
                 }
+                ImGui::Spacing();
             }
-            
             ImGui::EndPopup();
         }
 

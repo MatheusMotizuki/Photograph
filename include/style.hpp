@@ -7,7 +7,7 @@ class Style {
 private:
 // skip
 protected:
-    virtual void SetStyle() {
+    virtual void SetStyle(unsigned int) {
         
     };
 
@@ -19,9 +19,9 @@ protected:
 
 class NodeStyle : public Style {
 public:
-    void SetStyle() override {
+    void SetStyle(unsigned int borderColor) override {
         ImNodes::PushStyleVar(ImNodesStyleVar_NodeBorderThickness, 1.7f);
-        ImNodes::PushColorStyle(ImNodesCol_NodeOutline, IM_COL32(58, 58, 58, 255));
+        ImNodes::PushColorStyle(ImNodesCol_NodeOutline, borderColor);
         ImNodes::PushColorStyle(ImNodesCol_NodeBackground, IM_COL32(30, 30, 30, 255));
         ImNodes::PushColorStyle(ImNodesCol_NodeBackgroundHovered, IM_COL32(37, 37, 37, 255));
         ImNodes::PushColorStyle(ImNodesCol_NodeBackgroundSelected, IM_COL32(41, 41, 41, 255));

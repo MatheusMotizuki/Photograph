@@ -12,35 +12,32 @@ enum class PinType { Input, Output, Both };
 class NodeBase {
 private:
     static int next_id;
+    NodeStyle style;
+    
+    void SetNodeStyle(unsigned int borderColor = IM_COL32(58, 58, 58, 255)) {
+        style.SetStyle(borderColor);
+    }
+    
+    void ResetStyle() {
+        style.PopStyle();
+    }
 
+protected:
     int n_id;
     std::string n_title;
     ImVec4 n_title_col;
     PinType n_pinType;
-
     int n_input_id;
     int n_output_id;
-
     bool deletable;
-    
-    NodeStyle style;
 
-    void SetNodeStyle(){
-        style.SetStyle();
-    };
-
-    void ResetStyle() {
-        style.PopStyle();
-    };
-
-protected:
-    virtual void NodeContent() {
-        // Override this method to add custom content to the node
-        // For example, you could add sliders, buttons, etc.
-    }
-
+    // Virtual methods for customization
+    virtual void NodeContent() = 0; // pure virtual, must be implemented
     virtual bool ShouldDisplayText() const { return true; }
+    virtual unsigned int GetBorderColor() const { return IM_COL32(58, 58, 58, 255); }
+    virtual ImFont* GetTitleFont() const { return ImGui::GetIO().Fonts->Fonts[12]; }
 
+    // Common
     void InputText() {
         if (n_pinType == PinType::Input || n_pinType == PinType::Both) {
             ImNodes::BeginInputAttribute(n_input_id, ImNodesPinShape_CircleFilled);
@@ -58,23 +55,16 @@ protected:
     }
 
 public:
-    NodeBase(const std::string& title, PinType pinType = PinType::Both, bool deletable = true, ImVec4 title_col = ImVec4(0.7f, 0.6f, 0.9f, 1.0f))
-        : n_id(next_id++), n_title(title), n_pinType(pinType), deletable(deletable), n_title_col(title_col) {
-        n_input_id = n_id * 10 + 1;   // Input pins end with 1
-        n_output_id = n_id * 10 + 2;  // Output pins end with 2
-
-        std::cout << "creating node with id: " << n_id << std::endl;
-        std::cout << "creating node with in_id: " << n_input_id << std::endl;
-        std::cout << "creating node with out_id: " << n_output_id << std::endl;
-    }
+    NodeBase(const std::string& title, PinType pinType = PinType::Both, 
+             bool deletable = true, ImVec4 title_col = ImVec4(0.7f, 0.6f, 0.9f, 1.0f));
 
     void Draw() {
-        SetNodeStyle();
+        SetNodeStyle(GetBorderColor());
 
         ImNodes::BeginNode(n_id);
 
         ImNodes::BeginNodeTitleBar();
-        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[3]);
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[12]);
         ImGui::TextColored(n_title_col, "%s", n_title.c_str());
         ImGui::PopFont();
         ImNodes::EndNodeTitleBar();

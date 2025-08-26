@@ -18,7 +18,6 @@ protected:
         ImGui::EndChild();
 
         ImGui::PopStyleVar(3);
-
         
         ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(18, 18, 18, 255));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(61, 61, 61, 255));
@@ -28,7 +27,7 @@ protected:
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
         ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(80, 160, 200, 255));
 
-        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[4]);
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[11]);
 
         ImGui::Button("Upload image", ImVec2(256, 30));
 

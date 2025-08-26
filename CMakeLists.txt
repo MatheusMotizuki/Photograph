@@ -57,7 +57,7 @@ add_executable(photoGraph
     src/main.cpp
     src/Application.cpp
     src/GUI.cpp
-    src/Node.cpp
+    src/node/NodeBase.cpp
     ${IMGUI_SOURCES}
     ${IMNODES_SOURCES}
 )
