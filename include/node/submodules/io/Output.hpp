@@ -29,17 +29,20 @@ protected:
     
         ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[11]);
 
-        ImGui::Button("Download image", ImVec2(256, 30));
+        if (ImGui::Button("Download image", ImVec2(256, 30))) { openDialog(); }
 
         ImGui::PopFont();
 
         ImGui::PopStyleColor(5);
         ImGui::PopStyleVar(2);
     }
+
+    void openDialog() {
+        std::cout << "download image button pressed" << std::endl;
+    }
+
 public:
     OutputNode()
-        : NodeBase("Output Node", PinType::Input, false, ImVec4(0.3137f, 1.0f, 0.7059f, 1.0f)) {
-            std::cout << "creating output node" << std::endl;
-        }
+        : NodeBase("Output Node", PinType::Input, false, ImVec4(0.3137f, 1.0f, 0.7059f, 1.0f)) { std::cout << "creating output node" << std::endl; }
     // 
 };
