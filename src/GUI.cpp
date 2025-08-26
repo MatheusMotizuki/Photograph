@@ -122,6 +122,7 @@ void GUI::newFrame()
 
     ImGui::Begin("photoGraph", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration);
     GUI::setStyle();
+    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[4]); // Setup default font
     ImNodes::BeginNodeEditor();
     
     NodeMenu Menu;
@@ -180,6 +181,7 @@ void GUI::newFrame()
     
     ImNodes::MiniMap(0.2f, ImNodesMiniMapLocation_BottomRight);
     ImNodes::EndNodeEditor();
+    ImGui::PopFont();
     GUI::popStyle();
     ImGui::End();
 }
