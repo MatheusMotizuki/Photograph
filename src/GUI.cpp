@@ -24,6 +24,7 @@ GUI::GUI(SDL_Window* window, SDL_Renderer* renderer)
 
 GUI::~GUI()
 {
+    n_nodes.clear();
     shutdown();
 }
 

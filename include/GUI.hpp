@@ -10,7 +10,6 @@
 #include "imnodes.h"
 
 #include "node/NodeBase.hpp"
-// #include "Links.h"
 #include "node/NodeMenu.hpp"
 
 class GUI {
@@ -30,7 +29,7 @@ public:
 
     // Node factory
     std::unique_ptr<NodeBase> createNode(NodeMenu::NodeType type);
-        
+
 private:
     SDL_Window* m_window;
     SDL_Renderer* m_renderer;
