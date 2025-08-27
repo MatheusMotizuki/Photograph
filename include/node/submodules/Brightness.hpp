@@ -2,7 +2,7 @@
 
 #include "node/NodeBase.hpp"
 
-class BlurNode : public NodeBase {
+class BrightnessNode : public NodeBase {
 private:
 // skip
 
@@ -11,6 +11,6 @@ protected:
     unsigned int GetBorderColor() const override;
 
 public:
-    BlurNode();
-    ~BlurNode();
+    BrightnessNode();
+    ~BrightnessNode();
 };

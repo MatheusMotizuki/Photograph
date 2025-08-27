@@ -12,6 +12,7 @@
 #include "node/submodules/io/Output.hpp"
 // Common
 #include "node/submodules/Monochrome.hpp"
+#include "node/submodules/Brightness.hpp"
 #include "node/submodules/Blur.hpp"
 
 GUI::GUI(SDL_Window* window, SDL_Renderer* renderer)
@@ -218,6 +219,9 @@ std::unique_ptr<NodeBase> GUI::createNode(NodeMenu::NodeType type)
     {
     case NodeMenu::NodeType::MonochromeNode:
         return std::make_unique<MonochromeNode>();
+        break;
+    case NodeMenu::NodeType::BrightnessNode:
+        return std::make_unique<BrightnessNode>();
         break;
     case NodeMenu::NodeType::BlurNode:
         return std::make_unique<BlurNode>();

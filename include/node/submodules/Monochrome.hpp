@@ -1,25 +1,16 @@
 #pragma once
 
 #include "node/NodeBase.hpp"
-#include <iostream>
 
 class MonochromeNode : public NodeBase {
 private:
 // skip
-protected:
-    void NodeContent() override {
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 12.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 3));
-        // --
-        ImGui::PopStyleVar(3);
-    }
 
-    unsigned int GetBorderColor() const override {
-        return IM_COL32(0, 255, 255, 255);
-    }
+protected:
+    void NodeContent() override;
+    unsigned int GetBorderColor() const override;
+
 public:
-    MonochromeNode() : NodeBase("Monochrome Node", PinType::Both, true, 
-                                ImVec4(0.0f, 1.0f, 1.0f, 1.0f)) {}
-    //
+    MonochromeNode();
+    ~MonochromeNode();
 };

@@ -1,16 +1,17 @@
 #pragma once
 
 #include "node/NodeBase.hpp"
-#include <iostream>
 
 class InputNode : public NodeBase {
 private:
-    void openDialog();
+// skip
 
 protected:
-    bool ShouldDisplayText() const override;
+    void openDialog();
     void NodeContent() override;
+    bool ShouldDisplayText() const override;
 
 public:
     InputNode();
+    ~InputNode();
 };
