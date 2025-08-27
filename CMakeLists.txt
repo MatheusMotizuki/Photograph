@@ -16,6 +16,10 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(SDL2)
 
+# Disable SDL audio subsystem
+set(SDL_AUDIO OFF CACHE BOOL "" FORCE)
+set(SDL_DISABLE_AUDIO ON CACHE BOOL "" FORCE)
+
 # Fetch ImGui
 FetchContent_Declare(
     imgui
@@ -80,11 +84,20 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(opencv)
 
 add_executable(photoGraph 
-    src/main.cpp
     src/Application.cpp
     src/GUI.cpp
+    src/main.cpp
+    # --
     src/node/NodeBase.cpp
+    src/node/NodeMenu.cpp
+    # --
     src/node/submodules/io/Input.cpp
+    src/node/submodules/io/Output.cpp
+    # --
+    src/node/submodules/Blur.cpp
+    src/node/submodules/Brightness.cpp
+    src/node/submodules/Monochrome.cpp
+    # --
     ${IMGUI_SOURCES}
     ${IMNODES_SOURCES}
 )
@@ -95,9 +108,12 @@ target_include_directories(photoGraph PRIVATE
     ${imgui_SOURCE_DIR}/backends
     ${imnodes_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${opencv_SOURCE_DIR}/include
     ${OPENCV_CONFIG_FILE_INCLUDE_DIR}
     ${OPENCV_MODULE_opencv_core_LOCATION}/include
     ${OPENCV_MODULE_opencv_highgui_LOCATION}/include
+    ${OPENCV_MODULE_opencv_imgcodecs_LOCATION}/include
+    ${OPENCV_MODULE_opencv_imgproc_LOCATION}/include
 )
 
 if (WIN32)
@@ -113,6 +129,8 @@ target_link_libraries(photoGraph PRIVATE
     SDL2::SDL2main 
     opencv_core 
     opencv_highgui
+    opencv_imgcodecs
+    opencv_imgproc
 )
 
 target_precompile_headers(photoGraph PRIVATE

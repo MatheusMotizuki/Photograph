@@ -1,15 +1,11 @@
 #include "node/submodules/io/Input.hpp"
-#include <imgui.h>
-
-#include <opencv2/opencv.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/imgcodecs.hpp>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 
 InputNode::InputNode() : NodeBase("Input Node", PinType::Output, false, ImVec4(0.2f, 0.7f, 1.0f, 1.0f)) {
     std::cout << "creating input node" << std::endl;
+}
+
+InputNode::~InputNode() {
+    std::cout << "destroying input node" << std::endl;
 }
 
 bool InputNode::ShouldDisplayText() const { return false; }
@@ -18,10 +14,12 @@ void InputNode::NodeContent() {
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 12.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 3));
-    
-    ImGui::BeginChild("image input", ImVec2(256, 128));
-    cv::Mat image = cv::imread("assets/images/joia.jpg");
-    ImGui::EndChild();
+
+    // ImGui::BeginChild("image input", ImVec2(256, 128));
+    // cv::Mat image = cv::imread("assets/images/joia.jpg");
+    // cv::resize(image, image, cv::Size(256, 128));
+    // cv::cvtColor(image, image, cv::COLOR_BGR2RGBA);
+    // ImGui::EndChild();
 
     ImGui::PopStyleVar(3);
     
@@ -44,5 +42,5 @@ void InputNode::NodeContent() {
 }
 
 void InputNode::openDialog() {
-    
+    std::cout << "upload image button pressed" << std::endl;
 }
