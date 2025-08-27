@@ -87,6 +87,7 @@ add_executable(photoGraph
     src/Application.cpp
     src/GUI.cpp
     src/main.cpp
+    src/style.cpp
     # --
     src/node/NodeBase.cpp
     src/node/NodeMenu.cpp
