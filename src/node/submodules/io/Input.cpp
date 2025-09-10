@@ -1,11 +1,19 @@
 #include "node/submodules/io/Input.hpp"
 
-InputNode::InputNode() : NodeBase("Input Node", PinType::Output, false, ImVec4(0.2f, 0.7f, 1.0f, 1.0f)) {
+InputNode::InputNode(SDL_Renderer* renderer) 
+    : NodeBase("Input Node", PinType::Output, false, ImVec4(0.2f, 0.7f, 1.0f, 1.0f))
+    , m_renderer(renderer) 
+{
+    ImNodes::SetNodeScreenSpacePos(GetId(), ImVec2(60, 50));
     std::cout << "creating input node" << std::endl;
 }
 
 InputNode::~InputNode() {
     std::cout << "destroying input node" << std::endl;
+    if (m_texture) {
+        SDL_DestroyTexture(m_texture);
+        m_texture = nullptr;
+    }
 }
 
 bool InputNode::ShouldDisplayText() const { return false; }
@@ -14,12 +22,6 @@ void InputNode::NodeContent() {
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 12.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 3));
-
-    // ImGui::BeginChild("image input", ImVec2(256, 128));
-    // cv::Mat image = cv::imread("assets/images/joia.jpg");
-    // cv::resize(image, image, cv::Size(256, 128));
-    // cv::cvtColor(image, image, cv::COLOR_BGR2RGBA);
-    // ImGui::EndChild();
 
     ImGui::PopStyleVar(3);
     
