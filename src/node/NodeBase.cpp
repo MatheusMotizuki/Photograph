@@ -44,9 +44,9 @@ void NodeBase::OutputText() {
 // publiq
 
 NodeBase::NodeBase(const std::string& title, PinType pinType, 
-                   bool deletable, ImVec4 title_col)
+                   bool deletable, ImVec4 title_col, std::string tooltip)
     : n_id(next_id++), n_title(title), n_pinType(pinType), 
-      deletable(deletable), n_title_col(title_col) {
+      deletable(deletable), n_title_col(title_col), tooltip(tooltip) {
     n_input_id = n_id * 10 + 1;
     n_output_id = n_id * 10 + 2;
 }
@@ -57,7 +57,7 @@ void NodeBase::Draw() {
   ImNodes::BeginNode(n_id);
 
   ImNodes::BeginNodeTitleBar();
-  ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[12]);
+  ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[18]);
   ImGui::TextColored(n_title_col, "%s", n_title.c_str());
   ImGui::PopFont();
   ImNodes::EndNodeTitleBar();

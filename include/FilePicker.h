@@ -13,84 +13,7 @@ private:
     std::filesystem::path parent_path;
     std::string current_file;
 
-    /*
-    
-    // ...existing code...
-private:
-    std::string selected_file_str; // Add this
-
-public:
-    const char* selected_file; // Keep this for compatibility
-
-    FilePicker() {
-        // ...existing code...
-        selected_file = "";
-        selected_file_str = "";
-    }
-
-    // ...existing code...
-
-    if (ImGui::Button("Select")) {
-        if (!current_file.empty()) {
-            selected_file_str = current_file; // Store the string
-            selected_file = selected_file_str.c_str(); // Update pointer
-            *open = false;
-        }
-    }
-// ...existing code...
-
-// ...existing code...
-for (auto &entry : std::filesystem::directory_iterator(current_path)) {
-    std::string name = entry.path().filename().string();
-    std::string id = "##" + entry.path().string();
-    bool is_selected = (!current_file.empty() && std::filesystem::path(current_file) == entry.path());
-    if (entry.is_directory()) {
-        // ...existing code...
-    } else {
-        // Only show .png and .jpg files
-        auto ext = entry.path().extension().string();
-        if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
-            if (ImGui::Selectable((name + id).c_str(), is_selected, ImGuiSelectableFlags_AllowDoubleClick)) {
-                current_file = entry.path().string();
-            }
-        }
-    }
-}
-// ...existing code...
-
-
-Here are some suggestions to improve your FilePicker class and its usage:
-
-1. Memory Safety for selected_file
-You're assigning selected_file = current_file.c_str(); which points to a temporary string buffer. When current_file changes, selected_file may become invalid.
-Solution: Store selected_file as a std::string and provide a const char* getter.
-
-2. Encapsulation
-Make member variables private/protected unless needed outside.
-Provide getter/setter methods if necessary.
-
-3. Error Handling
-Add error handling for filesystem operations (e.g., permissions, missing directories).
-
-4. UI/UX Improvements
-Add file type filters (e.g., only show images).
-Allow keyboard navigation.
-Show file previews (thumbnails for images).
-Make "New Folder" functional.
-5. Code Organization
-Split UI code and logic for easier testing and maintenance.
-
-6. Const-Correctness
-Mark methods as const where possible.
-
-7. Use Modern C++
-Prefer std::string_view for non-owning string references.
-
-Example: File Type Filter
-
-Let me know if you want a specific improvement implemented!
-
-    */
+    std::string selected_file_str;
 
     ImGuiIO& io = ImGui::GetIO();
     ImFont* consolas = nullptr;
@@ -106,6 +29,7 @@ public:
         parent_path = current_path.parent_path();
         current_file = "";
         selected_file = "";
+        selected_file_str = "";
     }
 
     inline void ShowFileDialog(bool* open) {
@@ -114,7 +38,7 @@ public:
         if (!io.Fonts->Fonts.empty()) consolas = io.Fonts->Fonts.back();
         if (consolas) ImGui::PushFont(consolas);
 
-        ImGui::SetNextWindowSize(ImVec2(800, 400));
+        ImGui::SetNextWindowSize(ImVec2(760.0f, 400.0f));
         ImGui::SetNextWindowFocus();
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
@@ -164,7 +88,7 @@ public:
             if (!entry.is_directory()) continue;
             std::string name = entry.path().filename().string() + "/";
             std::string id = "##" + entry.path().string();
-            if (ImGui::Selectable((name + id).c_str(), false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick)) {
+            if (ImGui::Selectable((name + id).c_str(), false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick, ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
                 current_path = entry.path();
             }
         }
@@ -188,8 +112,11 @@ public:
                     }
                 }
             } else {
-                if (ImGui::Selectable((name + id).c_str(), is_selected, ImGuiSelectableFlags_AllowDoubleClick)) {
-                    current_file = entry.path().string();
+                auto ext = entry.path().extension().string();
+                if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
+                    if (ImGui::Selectable((name + id).c_str(), is_selected, ImGuiSelectableFlags_AllowDoubleClick)) {
+                        current_file = entry.path().string();
+                    }
                 }
             }
         }
@@ -209,14 +136,17 @@ public:
 
         ImGui::SameLine(ImGui::GetWindowWidth() - total_width - ImGui::GetStyle().WindowPadding.x);
 
-        ImGui::Button("Cancel");
+        if (ImGui::Button("Close")) {
+            *open = false;
+        }
         ImGui::SameLine();
         if (ImGui::Button("Select")) {
-            if (!current_file.empty()) {
-                selected_file = current_file.c_str();
-                *open = false;
+                if (!current_file.empty()) {
+                    selected_file_str = current_file;
+                    selected_file = selected_file_str.c_str();
+                    *open = false;
+                }
             }
-        }
 
         if (consolas) ImGui::PopFont();
         ImGui::PopStyleColor(4);

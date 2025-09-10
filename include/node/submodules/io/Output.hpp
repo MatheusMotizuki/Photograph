@@ -10,6 +10,8 @@ protected:
     void openDialog();
     void NodeContent() override;
     bool ShouldDisplayText() const override;
+    void popStyle();
+    void setStyle();
 
 public:
     OutputNode();

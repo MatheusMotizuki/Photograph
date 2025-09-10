@@ -136,7 +136,7 @@ void GUI::newFrame()
 
     ImGui::Begin("photoGraph", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration);
     GUI::setStyle();
-    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[11]); // Setup default font
+    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[18]); // Setup default font
     ImNodes::BeginNodeEditor();
     
     NodeMenu Menu;
@@ -185,6 +185,10 @@ void GUI::newFrame()
         link.id = Link::link_next_id++;
         link.init_attr = start_attr;
         link.end_attr = end_attr;
+
+        std::cout << "start attr is: " << start_attr << std::endl;
+        std::cout << "end attr is: " << end_attr << std::endl;
+
         n_links.push_back(link);
     }
 

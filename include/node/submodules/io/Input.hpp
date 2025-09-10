@@ -20,7 +20,6 @@ private:
     int m_tex_h = 0;
 
 protected:
-    void openDialog();
     void NodeContent() override;
     bool ShouldDisplayText() const override;
     void popStyle();

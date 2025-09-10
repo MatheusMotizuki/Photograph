@@ -25,6 +25,7 @@ protected:
     int n_input_id;
     int n_output_id;
     bool deletable;
+    std::string tooltip;
 
     // Virtual methods for customization
     virtual void NodeContent() = 0; // pure virtual, must be implemented
@@ -38,7 +39,7 @@ protected:
 
 public:
     NodeBase(const std::string& title, PinType pinType = PinType::Both, 
-             bool deletable = true, ImVec4 title_col = ImVec4(0.7f, 0.6f, 0.9f, 1.0f));
+             bool deletable = true, ImVec4 title_col = ImVec4(0.7f, 0.6f, 0.9f, 1.0f), std::string tooltip = "Base Node");
 
     void Draw();
 
