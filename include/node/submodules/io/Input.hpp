@@ -9,10 +9,13 @@
 
 #include "stb_image.h"
 
+#include "FilePicker.h"
+
 class InputNode : public NodeBase {
 private:
     SDL_Renderer* m_renderer = nullptr;
     SDL_Texture* m_texture = nullptr;
+    FilePicker filePicker;
     int m_tex_w = 0;
     int m_tex_h = 0;
 
@@ -20,6 +23,8 @@ protected:
     void openDialog();
     void NodeContent() override;
     bool ShouldDisplayText() const override;
+    void popStyle();
+    void setStyle();
 
 public:
     InputNode(SDL_Renderer* renderer);
