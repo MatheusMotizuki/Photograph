@@ -57,32 +57,6 @@ set(IMNODES_SOURCES
     ${imnodes_SOURCE_DIR}/imnodes.cpp
 )
 
-set(BUILD_opencv_apps OFF CACHE BOOL "")
-set(BUILD_opencv_calib3d OFF CACHE BOOL "")
-set(BUILD_opencv_dnn OFF CACHE BOOL "")
-set(BUILD_opencv_features2d OFF CACHE BOOL "")
-set(BUILD_opencv_flann OFF CACHE BOOL "")
-set(BUILD_opencv_gapi OFF CACHE BOOL "")
-set(BUILD_opencv_ml OFF CACHE BOOL "")
-set(BUILD_opencv_photo OFF CACHE BOOL "")
-set(BUILD_opencv_stitching OFF CACHE BOOL "")
-set(BUILD_opencv_video OFF CACHE BOOL "")
-set(BUILD_opencv_videoio OFF CACHE BOOL "")
-set(BUILD_TESTS OFF CACHE BOOL "")
-set(BUILD_PERF_TESTS OFF CACHE BOOL "")
-set(BUILD_EXAMPLES OFF CACHE BOOL "")
-set(WITH_TESTS OFF CACHE BOOL "")
-
-include(FetchContent)
-FetchContent_Declare(
-    opencv
-    GIT_REPOSITORY https://github.com/opencv/opencv.git
-    GIT_TAG 4.10.0
-    GIT_SHALLOW TRUE
-    GIT_PROGRESS TRUE
-)
-FetchContent_MakeAvailable(opencv)
-
 add_executable(photoGraph 
     src/Application.cpp
     src/GUI.cpp
@@ -109,12 +83,6 @@ target_include_directories(photoGraph PRIVATE
     ${imgui_SOURCE_DIR}/backends
     ${imnodes_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${opencv_SOURCE_DIR}/include
-    ${OPENCV_CONFIG_FILE_INCLUDE_DIR}
-    ${OPENCV_MODULE_opencv_core_LOCATION}/include
-    ${OPENCV_MODULE_opencv_highgui_LOCATION}/include
-    ${OPENCV_MODULE_opencv_imgcodecs_LOCATION}/include
-    ${OPENCV_MODULE_opencv_imgproc_LOCATION}/include
 )
 
 if (WIN32)
@@ -128,10 +96,6 @@ target_compile_definitions(photoGraph PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
 target_link_libraries(photoGraph PRIVATE 
     SDL2::SDL2-static 
     SDL2::SDL2main 
-    opencv_core 
-    opencv_highgui
-    opencv_imgcodecs
-    opencv_imgproc
 )
 
 target_precompile_headers(photoGraph PRIVATE

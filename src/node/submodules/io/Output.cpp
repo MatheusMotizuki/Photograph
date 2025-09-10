@@ -1,6 +1,9 @@
 #include "node/submodules/io/Output.hpp"
 
-OutputNode::OutputNode() : NodeBase("Output Node", PinType::Input, false, ImVec4(0.3137f, 1.0f, 0.7059f, 1.0f)) { 
+OutputNode::OutputNode() 
+    : NodeBase("Output Node", PinType::Input, false, ImVec4(0.3137f, 1.0f, 0.7059f, 1.0f)) 
+{
+    ImNodes::SetNodeScreenSpacePos(GetId(), ImVec2(900, 350));
     std::cout << "creating output node" << std::endl; 
 }
 

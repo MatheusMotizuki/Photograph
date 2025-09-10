@@ -4,10 +4,6 @@
 #include "imnodes.h"
 #include "style.hpp"
 
-#include <opencv2/opencv.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/imgcodecs.hpp>
-
 #include <iostream>
 #include <string>
 
@@ -51,4 +47,12 @@ public:
     bool IsSelected() const;
     std::string GetTitle() const;
     virtual ~NodeBase() = default;
+};
+
+struct Link {
+    int id;
+    int init_attr;
+    int end_attr;
+
+    static int link_next_id;
 };

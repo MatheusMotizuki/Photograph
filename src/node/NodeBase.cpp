@@ -3,6 +3,7 @@
 // private
 
 int NodeBase::next_id = 1; // Initialize the static counter for automatic ID generation
+int Link::link_next_id = 1;
 
 void NodeBase::SetNodeStyle(unsigned int borderColor = IM_COL32(58, 58, 58, 255)) {
   style.SetStyle(borderColor);

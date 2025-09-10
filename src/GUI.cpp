@@ -1,25 +1,14 @@
 #include "GUI.hpp"
-#include <algorithm>
-#include <iostream>
 
-#include <vector>
-#include <memory>
-
-#include <unordered_set>
-
-// In 'n' out
-#include "node/submodules/io/Input.hpp"
-#include "node/submodules/io/Output.hpp"
-// Common
-#include "node/submodules/Monochrome.hpp"
-#include "node/submodules/Brightness.hpp"
-#include "node/submodules/Blur.hpp"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 GUI::GUI(SDL_Window* window, SDL_Renderer* renderer)
     : m_window(window)
     , m_renderer(renderer)
     , m_initialized(false)
 {
+    std::cout << "Initialize GUI\n";
 }
 
 GUI::~GUI()
@@ -157,50 +146,52 @@ void GUI::newFrame()
     }
 
     // Create unique input and output nodes only once and draw them first
-    static std::unique_ptr<InputNode> input = std::make_unique<InputNode>();
-    static std::unique_ptr<OutputNode> output = std::make_unique<OutputNode>();
-    
-    // unfortunately we have to do this...
-    static bool initialized = false;
-    if (!initialized) {
-        ImNodes::SetNodeScreenSpacePos(input->GetId(), ImVec2(60, 50));
-        ImNodes::SetNodeScreenSpacePos(output->GetId(), ImVec2(900, 350));
-        initialized = true;
-    }
-    input->Draw();
-    output->Draw();
+    static std::unique_ptr<InputNode> input = std::make_unique<InputNode>(m_renderer); input->Draw();
+    static std::unique_ptr<OutputNode> output = std::make_unique<OutputNode>(); output->Draw();
 
     for (const auto& node : n_nodes) {
         node->Draw();
-    }
-
-    std::unordered_set<int> death_marks;
-    for (const auto& node : n_nodes) {
         if (node->IsSelected()) {
-            death_marks.insert(node->GetId());
+            death_node.insert(node->GetId());
         }
     }
 
-    if (!death_marks.empty() && ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
-        std::cout << "Delete key pressed. Attempting to remove selected nodes..." << std::endl;
-        size_t before = n_nodes.size();
-        n_nodes.erase(
-            std::remove_if(n_nodes.begin(), n_nodes.end(),
-                [&death_marks](const std::unique_ptr<NodeBase>& node){
-                    if (!node->IsProtected()) return false;
-                    if (death_marks.count(node->GetId()) > 0) {
-                        std::cout << "Removing node with ID: " << node->GetId() << std::endl;
-                        return true;
-                    }
-                    return false;
-                }),
-            n_nodes.end());
-        size_t after = n_nodes.size();
-        std::cout << "Removed " << (before - after) << " nodes." << std::endl;
+    for (const Link& link : n_links) {
+        ImNodes::Link(link.id, link.init_attr, link.end_attr);
+        if (ImNodes::IsLinkSelected(link.id)) {
+            death_link.insert(link.id);
+        }
     }
-    
+
+    if (!death_node.empty() && 
+        ImGui::IsKeyPressed(ImGuiKey_Delete, false)
+    ) { certainDeathNode(n_nodes, death_node); death_node.clear(); }
+
+    if (!death_link.empty() && 
+        ImGui::IsKeyPressed(ImGuiKey_Delete, false)
+    ) { certainDeathLink(n_links, death_link); death_link.clear(); }
+
     ImNodes::MiniMap(0.2f, ImNodesMiniMapLocation_BottomRight);
     ImNodes::EndNodeEditor();
+
+    int start_attr, end_attr;
+    if (ImNodes::IsLinkCreated(&start_attr, &end_attr)) {
+        Link link;
+        link.id = Link::link_next_id++;
+        link.init_attr = start_attr;
+        link.end_attr = end_attr;
+        n_links.push_back(link);
+    }
+
+    int link_id;
+    if (ImNodes::IsLinkDestroyed(&link_id)) {
+        n_links.erase(
+            std::remove_if(n_links.begin(), n_links.end(),
+            [link_id](const Link& link) { return link.id == link_id; }),
+            n_links.end()
+        );
+    }
+
     ImGui::PopFont();
     GUI::popStyle();
     ImGui::End();
@@ -212,6 +203,25 @@ void GUI::render()
     ImGuiIO& io = ImGui::GetIO();
     SDL_RenderSetScale(m_renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
     ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), m_renderer);
+}
+
+inline void GUI::certainDeathNode(std::vector<std::unique_ptr<NodeBase>>& n_nodes, const std::unordered_set<int>& death_node) {
+    n_nodes.erase(
+        std::remove_if(n_nodes.begin(), n_nodes.end(),
+            [&death_node](const std::unique_ptr<NodeBase>& node){
+                if (!node->IsProtected()) return false; // do not remove if protected
+                return death_node.count(node->GetId()) > 0;
+            }),
+        n_nodes.end());
+}
+
+inline void GUI::certainDeathLink(std::vector<Link>& n_links, std::unordered_set<int>& death_link){
+    n_links.erase(
+            std::remove_if(n_links.begin(), n_links.end(),
+            [&death_link](const Link& link) {
+                return death_link.count(link.id) > 0;
+            }),
+        n_links.end());
 }
 
 std::unique_ptr<NodeBase> GUI::createNode(NodeMenu::NodeType type)
