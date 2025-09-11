@@ -14,6 +14,10 @@ InputNode::~InputNode() {
         SDL_DestroyTexture(m_texture);
         m_texture = nullptr;
     }
+    if (m_image_data) {
+        stbi_image_free(m_image_data);
+        m_image_data = nullptr;
+    }
 }
 
 bool InputNode::ShouldDisplayText() const { return false; }
@@ -21,34 +25,45 @@ bool InputNode::ShouldDisplayText() const { return false; }
 void InputNode::NodeContent() {
     setStyle();
 
+    // and remember kids:
+    // always nullptr
+    // your pointers
+    // after they are free'd
+    if (m_texture) {
+        SDL_DestroyTexture(m_texture);
+        m_texture = nullptr;
+    }
+    if (m_image_data) {
+        stbi_image_free(m_image_data);
+        m_image_data = nullptr;
+    }
+
     static bool openPicker = false;
     static int width = 0, height = 0, og_chans = 0;
-    static unsigned char* image_data = nullptr;
-    static SDL_Texture* texture;
 
     if (openPicker) {
         filePicker.ShowFileDialog(&openPicker);
-        if (image_data) { stbi_image_free(image_data); image_data = nullptr; }
-        if (texture) { SDL_DestroyTexture(texture); texture = nullptr; }
-        image_data = stbi_load(filePicker.selected_file, &width, &height, &og_chans, 0);
+        m_image_data = stbi_load(filePicker.selected_file, &width, &height, &og_chans, 0);
 
         // if image data was loaded successfully
-        if (image_data) {
-            texture = SDL_CreateTextureFromSurface(m_renderer, SDL_CreateRGBSurfaceFrom(
-                (void*)image_data, width, height, og_chans * 8, og_chans * width, 
-                0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000));
+        if (m_image_data) {
+            SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(
+                (void*)m_image_data, width, height, og_chans * 8, og_chans * width, 
+                0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+            m_texture = SDL_CreateTextureFromSurface(m_renderer, surface);
+            SDL_FreeSurface(surface);
         }
     }
 
     // if we have a texture and image_data
-    if (texture && image_data) {
+    if (m_texture && m_image_data) {
         float m_width = 300.f, m_height = 200.f;
         float image_w = (float)width, image_h = (float)height;
         float scale = std::min(m_width / image_w, m_height / image_h);
         ImVec2 size(image_w * scale, image_h * scale);
 
         ImGui::BeginChild("##input image", ImVec2(m_width, m_height), false);
-        ImGui::Image((ImTextureID)(intptr_t)texture, size);
+        ImGui::Image((ImTextureID)(intptr_t)m_texture, size);
         ImGui::EndChild();
     }
 

@@ -13,6 +13,7 @@
 
 class InputNode : public NodeBase {
 private:
+    unsigned char* m_image_data = nullptr;
     SDL_Renderer* m_renderer = nullptr;
     SDL_Texture* m_texture = nullptr;
     FilePicker filePicker;

@@ -16,7 +16,10 @@ bool OutputNode::ShouldDisplayText() const { return false; }
 void OutputNode::NodeContent() {
     setStyle();
 
-    if (ImGui::Button("Download image", ImVec2(256, 30))) { std::cout << "clicked" << std::endl; }
+    if (ImGui::Button("Download image", ImVec2(256, 30))) { 
+        std::cout << "clicked" << std::endl;
+        // TODO: implement this.
+    }
 
     popStyle();
 }
@@ -42,5 +45,5 @@ void OutputNode::popStyle() {
 }
 
 void OutputNode::Process() {
-    
+
 }

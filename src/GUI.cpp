@@ -8,11 +8,13 @@ GUI::GUI(SDL_Window* window, SDL_Renderer* renderer)
     , m_renderer(renderer)
     , m_initialized(false)
 {
-    std::cout << "Initialize GUI\n";
+    std::cout << "GUI says: hello world!" << std::endl;
 }
 
 GUI::~GUI()
 {
+    std::cout << "GUI says: bye bye" << std::endl;
+    n_links.clear();
     n_nodes.clear();
     shutdown();
 }
