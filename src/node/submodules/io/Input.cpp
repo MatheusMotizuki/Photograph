@@ -78,3 +78,7 @@ void InputNode::popStyle() {
     ImGui::PopStyleColor(5);
     ImGui::PopStyleVar(5);
 }
+
+void InputNode::Process() {
+    
+}

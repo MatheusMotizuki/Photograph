@@ -40,3 +40,7 @@ void OutputNode::popStyle() {
     ImGui::PopStyleColor(5);
     ImGui::PopStyleVar(5);
 }
+
+void OutputNode::Process() {
+    
+}

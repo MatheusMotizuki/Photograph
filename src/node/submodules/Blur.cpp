@@ -19,3 +19,7 @@ void BlurNode::NodeContent() {
     // --
     ImGui::PopStyleVar(3);
 }
+
+void BlurNode::Process() {
+    
+}

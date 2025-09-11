@@ -25,6 +25,8 @@ protected:
     void popStyle();
     void setStyle();
 
+    void Process() override;
+
 public:
     InputNode(SDL_Renderer* renderer);
     ~InputNode();

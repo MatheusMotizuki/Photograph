@@ -13,6 +13,8 @@ protected:
     void popStyle();
     void setStyle();
 
+    void Process() override;
+
 public:
     OutputNode();
     ~OutputNode();

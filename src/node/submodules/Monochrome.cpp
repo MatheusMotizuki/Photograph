@@ -19,3 +19,7 @@ void MonochromeNode::NodeContent() {
     // --
     ImGui::PopStyleVar(3);
 }
+
+void MonochromeNode::Process() {
+    
+}

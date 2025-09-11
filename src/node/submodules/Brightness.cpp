@@ -19,3 +19,7 @@ void BrightnessNode::NodeContent() {
     // --
     ImGui::PopStyleVar(3);
 }
+
+void BrightnessNode::Process() {
+    
+}

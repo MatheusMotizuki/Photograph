@@ -134,7 +134,14 @@ void GUI::newFrame()
     ImGui::SetNextWindowPos(viewport->Pos);
     ImGui::SetNextWindowSize(viewport->Size);
 
-    ImGui::Begin("photoGraph", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration);
+    ImGui::Begin("photoGraph", nullptr, 
+        ImGuiWindowFlags_NoTitleBar | 
+        ImGuiWindowFlags_NoCollapse | 
+        ImGuiWindowFlags_AlwaysAutoResize | 
+        ImGuiWindowFlags_NoMove | 
+        ImGuiWindowFlags_NoNav | 
+        ImGuiWindowFlags_NoDecoration
+    );
     GUI::setStyle();
     ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[18]); // Setup default font
     ImNodes::BeginNodeEditor();
@@ -154,17 +161,34 @@ void GUI::newFrame()
     static std::unique_ptr<InputNode> input = std::make_unique<InputNode>(m_renderer); input->Draw();
     static std::unique_ptr<OutputNode> output = std::make_unique<OutputNode>(); output->Draw();
 
+    // clear both before checking
+    selected_nodes.clear();
+    selected_links.clear();
+
     for (const auto& node : n_nodes) {
         node->Draw();
-        if (node->IsSelected()) {
-            death_node.insert(node->GetId());
+        if (ImNodes::IsNodeSelected(node->GetId())) {
+            selected_nodes.insert(node->GetId());
         }
     }
 
     for (const Link& link : n_links) {
         ImNodes::Link(link.id, link.init_attr, link.end_attr);
+
         if (ImNodes::IsLinkSelected(link.id)) {
-            death_link.insert(link.id);
+            selected_links.insert(link.id);
+        }
+    }
+
+    // delete selected nodes
+    // delete selected links
+    if (ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
+        for (int id : selected_nodes) {
+            death_node.insert(id);
+        }
+
+        for (int id : selected_links) {
+            death_link.insert(id);
         }
     }
 
@@ -185,10 +209,6 @@ void GUI::newFrame()
         link.id = Link::link_next_id++;
         link.init_attr = start_attr;
         link.end_attr = end_attr;
-
-        std::cout << "start attr is: " << start_attr << std::endl;
-        std::cout << "end attr is: " << end_attr << std::endl;
-
         n_links.push_back(link);
     }
 

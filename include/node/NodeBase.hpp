@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <string>
+#include <any>
 
 enum class PinType { Input, Output, Both };
 
@@ -27,8 +28,10 @@ protected:
     bool deletable;
     std::string tooltip;
 
-    // Virtual methods for customization
+    virtual void Process() = 0; // where nodes modify incoming data
     virtual void NodeContent() = 0; // pure virtual, must be implemented
+
+    // Virtual methods for customization
     virtual bool ShouldDisplayText() const;
     virtual unsigned int GetBorderColor() const;
     virtual ImFont* GetTitleFont() const;
@@ -48,12 +51,4 @@ public:
     bool IsSelected() const;
     std::string GetTitle() const;
     virtual ~NodeBase() = default;
-};
-
-struct Link {
-    int id;
-    int init_attr;
-    int end_attr;
-
-    static int link_next_id;
 };
