@@ -17,4 +17,6 @@ protected:
 public:
     OutputNode();
     ~OutputNode();
+
+    void Description() override;
 };

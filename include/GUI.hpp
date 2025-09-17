@@ -45,8 +45,6 @@ private:
     | ImGuiWindowFlags_NoCollapse
     | ImGuiWindowFlags_MenuBar;
 
-private:
-
 public:
     GUI(SDL_Window* window, SDL_Renderer* renderer);
     ~GUI();
@@ -62,7 +60,7 @@ public:
     void popStyle();
 
     inline void certainDeathNode(
-        std::vector<std::unique_ptr<NodeBase>>& n_nodes,
+        std::vector<std::unique_ptr<NodeBase>>& n_nodes, 
         const std::unordered_set<int>& death_node
     );
 

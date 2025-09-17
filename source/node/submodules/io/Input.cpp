@@ -1,7 +1,7 @@
 #include "node/submodules/io/Input.hpp"
 
 InputNode::InputNode(SDL_Renderer* renderer) 
-    : NodeBase("Input Node", PinType::Output, false, ImVec4(0.2f, 0.7f, 1.0f, 1.0f))
+    : NodeBase("Input Node", PinType::Output, "input_node", false, ImVec4(0.2f, 0.7f, 1.0f, 1.0f))
     , m_renderer(renderer) 
 {
     ImNodes::SetNodeScreenSpacePos(GetId(), ImVec2(60, 50));
@@ -23,27 +23,27 @@ InputNode::~InputNode() {
 bool InputNode::ShouldDisplayText() const { return false; }
 
 void InputNode::NodeContent() {
+    ImGui::TextDisabled("Input Preview:");
     setStyle();
-
-    // and remember kids:
-    // always nullptr
-    // your pointers
-    // after they are free'd
-    if (m_texture) {
-        SDL_DestroyTexture(m_texture);
-        m_texture = nullptr;
-    }
-    if (m_image_data) {
-        stbi_image_free(m_image_data);
-        m_image_data = nullptr;
-    }
 
     static bool openPicker = false;
     static int width = 0, height = 0, og_chans = 0;
 
     if (openPicker) {
         filePicker.ShowFileDialog(&openPicker);
-        m_image_data = stbi_load(filePicker.selected_file, &width, &height, &og_chans, 0);
+
+        if (m_texture) {
+            SDL_DestroyTexture(m_texture);
+            m_texture = nullptr;
+        }
+        if (m_image_data) {
+            stbi_image_free(m_image_data);
+            m_image_data = nullptr;
+        }
+
+        if (filePicker.GetSelectedFile()) {
+            m_image_data = stbi_load(filePicker.selected_file, &width, &height, &og_chans, 0);
+        }
 
         // if image data was loaded successfully
         if (m_image_data) {
@@ -52,22 +52,34 @@ void InputNode::NodeContent() {
                 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
             m_texture = SDL_CreateTextureFromSurface(m_renderer, surface);
             SDL_FreeSurface(surface);
+        } else {
+            ImGui::Text("Failed to load image");
         }
     }
 
     // if we have a texture and image_data
     if (m_texture && m_image_data) {
-        float m_width = 300.f, m_height = 200.f;
+        float m_width = 200.f, m_height = 200.f; // cap the image size
         float image_w = (float)width, image_h = (float)height;
-        float scale = std::min(m_width / image_w, m_height / image_h);
-        ImVec2 size(image_w * scale, image_h * scale);
+        float scale = 1.0f;
+        ImVec2 size;
 
-        ImGui::BeginChild("##input image", ImVec2(m_width, m_height), false);
+        if (image_w > m_width) { // simple check to display the image better
+            scale = m_width / image_w;
+            size = ImVec2(m_width, image_h * scale);
+        } else if (image_h > m_height) {
+            scale = m_height / image_h;
+            size = ImVec2(image_w * scale, m_height);
+        } else {
+            size = ImVec2(image_w, image_h);
+        }
+
+        ImGui::BeginChild("##input image", ImVec2(m_width, size.y), false);
         ImGui::Image((ImTextureID)(intptr_t)m_texture, size);
         ImGui::EndChild();
     }
 
-    if (ImGui::Button("Upload image", ImVec2(300, 30))) {
+    if (ImGui::Button("Upload image", ImVec2(200, 30))) {
         openPicker = true;
     }
 
@@ -75,9 +87,6 @@ void InputNode::NodeContent() {
 }
 
 void InputNode::setStyle() {
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 12.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 3));
     ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(18, 18, 18, 255));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(61, 61, 61, 255));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, IM_COL32(31, 31, 31, 255));
@@ -91,9 +100,24 @@ void InputNode::setStyle() {
 void InputNode::popStyle() {
     ImGui::PopFont();
     ImGui::PopStyleColor(5);
-    ImGui::PopStyleVar(5);
+    ImGui::PopStyleVar(2);
 }
 
 void InputNode::Process() {
     
+}
+
+void InputNode::Description() {
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12, 12));
+    ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 4.0f);
+
+    std::string popup_name = GetInternalTitle() + "_" + std::to_string(GetId());
+    if (ImGui::BeginPopup(popup_name.c_str())) {
+        ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.75f, 1.0f), "Node description");
+        ImGui::Separator();
+        ImGui::Spacing();
+        ImGui::Text("this is the node description");
+        ImGui::EndPopup();
+    }
+    ImGui::PopStyleVar(2);
 }

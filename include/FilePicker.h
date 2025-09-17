@@ -15,14 +15,13 @@ private:
 
     std::string selected_file_str;
 
+public:
     ImGuiIO& io = ImGui::GetIO();
     ImFont* consolas = nullptr;
 
-protected:
-    inline const char* GetSelectedFile() const { return selected_file; }
-
-public:
     const char* selected_file;
+
+    inline const char* GetSelectedFile() const { return selected_file; }
 
     FilePicker() {
         current_path = std::filesystem::current_path();

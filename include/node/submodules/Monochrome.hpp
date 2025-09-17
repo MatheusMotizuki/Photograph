@@ -14,4 +14,6 @@ protected:
 public:
     MonochromeNode();
     ~MonochromeNode();
+    
+    void Description() override;
 };

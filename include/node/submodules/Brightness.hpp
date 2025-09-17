@@ -14,4 +14,6 @@ protected:
 public:
     BrightnessNode();
     ~BrightnessNode();
+
+    void Description() override;
 };

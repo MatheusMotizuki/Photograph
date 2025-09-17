@@ -23,12 +23,14 @@ private:
 protected:
     void NodeContent() override;
     bool ShouldDisplayText() const override;
-    void popStyle();
     void setStyle();
+    void popStyle();
 
     void Process() override;
 
 public:
     InputNode(SDL_Renderer* renderer);
     ~InputNode();
+
+    void Description() override;
 };

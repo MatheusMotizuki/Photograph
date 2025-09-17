@@ -126,7 +126,7 @@ void GUI::popStyle()
 }
 
 void GUI::newFrame()
-{    
+{
     ImGui_ImplSDLRenderer2_NewFrame();
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();    
@@ -148,10 +148,17 @@ void GUI::newFrame()
     ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[18]); // Setup default font
     ImNodes::BeginNodeEditor();
     
+    const bool open_menu = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+        ImNodes::IsEditorHovered() && ImGui::IsMouseDown(1) && selected_nodes.empty();
+
+    // Create unique input and output nodes only once and draw them first
+    static std::unique_ptr<InputNode> input = std::make_unique<InputNode>(m_renderer); input->Draw();
+    static std::unique_ptr<OutputNode> output = std::make_unique<OutputNode>(); output->Draw();
+
     NodeMenu Menu;
+    if (open_menu) ImGui::OpenPopup("add node");
     if (Menu.Draw()) {
         ImVec2 position = Menu.GetClickPos();
-
         std::unique_ptr<NodeBase> node = createNode(Menu.GetNodeType());
         if (node) {
             ImNodes::SetNodeScreenSpacePos(node->GetId(), position);
@@ -159,19 +166,15 @@ void GUI::newFrame()
         }
     }
 
-    // Create unique input and output nodes only once and draw them first
-    static std::unique_ptr<InputNode> input = std::make_unique<InputNode>(m_renderer); input->Draw();
-    static std::unique_ptr<OutputNode> output = std::make_unique<OutputNode>(); output->Draw();
-
     // clear both before checking
     selected_nodes.clear();
     selected_links.clear();
 
     for (const auto& node : n_nodes) {
         node->Draw();
-        if (ImNodes::IsNodeSelected(node->GetId())) {
-            selected_nodes.insert(node->GetId());
-        }
+        int nodeID = node->GetId();
+        bool selected = ImNodes::IsNodeSelected(node->GetId());
+        if (selected) selected_nodes.insert(node->GetId());
     }
 
     for (const Link& link : n_links) {
@@ -182,8 +185,7 @@ void GUI::newFrame()
         }
     }
 
-    // delete selected nodes
-    // delete selected links
+    // delete selected nodes and links
     if (ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
         for (int id : selected_nodes) {
             death_node.insert(id);
@@ -204,6 +206,16 @@ void GUI::newFrame()
 
     ImNodes::MiniMap(0.2f, ImNodesMiniMapLocation_BottomRight);
     ImNodes::EndNodeEditor();
+
+// TODO: fix this
+    // for (auto& node : n_nodes) {
+    //     int nodeID = node->GetId();
+    //     bool hovered = ImNodes::IsNodeHovered(&nodeID);
+    //     if (hovered) {
+    //         if(ImGui::IsMouseDown(1)) ImGui::OpenPopup((node->GetInternalTitle() + "_" + std::to_string(node->GetId())).c_str());
+    //     }
+    //     node->Description();
+    // }
 
     int start_attr, end_attr;
     if (ImNodes::IsLinkCreated(&start_attr, &end_attr)) {

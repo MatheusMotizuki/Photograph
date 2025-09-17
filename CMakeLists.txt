@@ -58,20 +58,20 @@ set(IMNODES_SOURCES
 )
 
 add_executable(photoGraph 
-    src/Application.cpp
-    src/GUI.cpp
-    src/main.cpp
-    src/style.cpp
+    source/Application.cpp
+    source/GUI.cpp
+    source/main.cpp
+    source/style.cpp
     # --
-    src/node/NodeBase.cpp
-    src/node/NodeMenu.cpp
+    source/node/NodeBase.cpp
+    source/node/NodeMenu.cpp
     # --
-    src/node/submodules/io/Input.cpp
-    src/node/submodules/io/Output.cpp
+    source/node/submodules/io/Input.cpp
+    source/node/submodules/io/Output.cpp
     # --
-    src/node/submodules/Blur.cpp
-    src/node/submodules/Brightness.cpp
-    src/node/submodules/Monochrome.cpp
+    source/node/submodules/Blur.cpp
+    source/node/submodules/Brightness.cpp
+    source/node/submodules/Monochrome.cpp
     # --
     ${IMGUI_SOURCES}
     ${IMNODES_SOURCES}
@@ -94,8 +94,8 @@ target_compile_definitions(photoGraph PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
 
 # Link against SDL2
 target_link_libraries(photoGraph PRIVATE 
-    SDL2::SDL2-static 
-    SDL2::SDL2main 
+    SDL2::SDL2-static
+    SDL2::SDL2main
 )
 
 target_precompile_headers(photoGraph PRIVATE
