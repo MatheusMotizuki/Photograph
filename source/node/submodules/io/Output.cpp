@@ -52,10 +52,16 @@ void OutputNode::Description() {
 
     std::string popup_name = GetInternalTitle() + "_" + std::to_string(GetId());
     if (ImGui::BeginPopup(popup_name.c_str())) {
-        ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.75f, 1.0f), "Node description");
+        ImGui::TextColored(ImVec4(0.31f, 1.0f, 0.71f, 1.0f), "Output Node");
         ImGui::Separator();
         ImGui::Spacing();
-        ImGui::Text("this is the node description");
+        ImGui::Text("Displays the final result of your node graph.");
+        ImGui::Text("Use this node to preview and export the processed image.");
+        ImGui::Spacing();
+        ImGui::Text("Click 'Download image' to save the output to disk.");
+        ImGui::Spacing();
+        ImGui::TextDisabled("Tip: Connect your last processing node");
+        ImGui::TextDisabled("to this node to see the final effect.");
         ImGui::EndPopup();
     }
     ImGui::PopStyleVar(2);

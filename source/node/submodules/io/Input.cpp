@@ -113,10 +113,18 @@ void InputNode::Description() {
 
     std::string popup_name = GetInternalTitle() + "_" + std::to_string(GetId());
     if (ImGui::BeginPopup(popup_name.c_str())) {
-        ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.75f, 1.0f), "Node description");
+        ImGui::TextColored(ImVec4(0.2f, 0.7f, 1.0f, 1.0f), "Input Node");
         ImGui::Separator();
         ImGui::Spacing();
-        ImGui::Text("this is the node description");
+        ImGui::Text("Loads an image from your computer");
+        ImGui::Text("and provides it as the starting point");
+        ImGui::Text("for your node graph.");
+        ImGui::Spacing();
+        ImGui::Text("Supported formats include PNG, JPG,");
+        ImGui::Text("and other common image types.");
+        ImGui::Spacing();
+        ImGui::TextDisabled("Tip: Use this node to import");
+        ImGui::TextDisabled("photos or textures for editing.");
         ImGui::EndPopup();
     }
     ImGui::PopStyleVar(2);

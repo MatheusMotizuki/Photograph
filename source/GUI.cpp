@@ -151,9 +151,14 @@ void GUI::newFrame()
     const bool open_menu = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
         ImNodes::IsEditorHovered() && ImGui::IsMouseDown(1) && selected_nodes.empty();
 
-    // Create unique input and output nodes only once and draw them first
-    static std::unique_ptr<InputNode> input = std::make_unique<InputNode>(m_renderer); input->Draw();
-    static std::unique_ptr<OutputNode> output = std::make_unique<OutputNode>(); output->Draw();
+    // TODO: remake this but better
+    // Ensure input and output nodes are created and added to n_nodes only once, outside of newFrame.
+    static bool input_output_added = false;
+    if (!input_output_added) {
+        n_nodes.push_back(std::make_unique<InputNode>(m_renderer));
+        n_nodes.push_back(std::make_unique<OutputNode>());
+        input_output_added = true;
+    }
 
     NodeMenu Menu;
     if (open_menu) ImGui::OpenPopup("add node");
@@ -174,7 +179,11 @@ void GUI::newFrame()
         node->Draw();
         int nodeID = node->GetId();
         bool selected = ImNodes::IsNodeSelected(node->GetId());
-        if (selected) selected_nodes.insert(node->GetId());
+        if (selected) {
+            selected_nodes.insert(node->GetId());
+            if(ImGui::IsMouseDown(1)) ImGui::OpenPopup((node->GetInternalTitle() + "_" + std::to_string(node->GetId())).c_str());
+        }
+        node->Description();
     }
 
     for (const Link& link : n_links) {
@@ -200,22 +209,14 @@ void GUI::newFrame()
         ImGui::IsKeyPressed(ImGuiKey_Delete, false)
     ) { certainDeathNode(n_nodes, death_node); death_node.clear(); }
 
+    // TODO: check if the node attached to this link
+    // was delete, if so delete this link also.
     if (!death_link.empty() && 
         ImGui::IsKeyPressed(ImGuiKey_Delete, false)
     ) { certainDeathLink(n_links, death_link); death_link.clear(); }
 
     ImNodes::MiniMap(0.2f, ImNodesMiniMapLocation_BottomRight);
     ImNodes::EndNodeEditor();
-
-// TODO: fix this
-    // for (auto& node : n_nodes) {
-    //     int nodeID = node->GetId();
-    //     bool hovered = ImNodes::IsNodeHovered(&nodeID);
-    //     if (hovered) {
-    //         if(ImGui::IsMouseDown(1)) ImGui::OpenPopup((node->GetInternalTitle() + "_" + std::to_string(node->GetId())).c_str());
-    //     }
-    //     node->Description();
-    // }
 
     int start_attr, end_attr;
     if (ImNodes::IsLinkCreated(&start_attr, &end_attr)) {
