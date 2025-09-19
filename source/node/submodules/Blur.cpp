@@ -1,12 +1,7 @@
 #include "node/submodules/Blur.hpp"
 
-BlurNode::BlurNode() : NodeBase("Blur Node", PinType::Both, "blur_node", true, ImVec4(1.0f, 0.37f, 0.0f, 1.0f)){
-    std::cout << "Creating blur node" << std::endl;
-}
-
-BlurNode::~BlurNode() {
-    std::cout << "destroying blur node" << std::endl;
-}
+BlurNode::BlurNode() : NodeBase("Blur Node", PinType::Both, "blur_node", true, ImVec4(1.0f, 0.37f, 0.0f, 1.0f)) {}
+BlurNode::~BlurNode() {}
 
 unsigned int BlurNode::GetBorderColor() const {
     return IM_COL32(255, 94, 0, 255);

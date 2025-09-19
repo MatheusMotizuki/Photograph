@@ -13,7 +13,14 @@
 
 enum class PinType { Input, Output, Both };
 
-struct Link {
+class Link {
+private:
+// skip
+
+protected:
+// skip
+
+public:
     int id;
     int init_attr;
     int end_attr;

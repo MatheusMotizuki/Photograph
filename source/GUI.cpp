@@ -7,13 +7,10 @@ GUI::GUI(SDL_Window* window, SDL_Renderer* renderer)
     : m_window(window)
     , m_renderer(renderer)
     , m_initialized(false)
-{
-    std::cout << "GUI says: hello world!" << std::endl;
-}
+{}
 
 GUI::~GUI()
 {
-    std::cout << "GUI says: bye bye" << std::endl;
     n_links.clear();
     n_nodes.clear();
     shutdown();
@@ -192,11 +189,6 @@ void GUI::newFrame()
         if (ImNodes::IsLinkSelected(link.id)) {
             selected_links.insert(link.id);
         }
-
-        bool selected = ImNodes::IsLinkSelected(link.id);
-        if (select) {
-            if (ImGui::IsMouseClicked(ImGuiMouseButton_Right, false)) std::cout << "selected" << std::endl;
-        }
     }
 
     // delete selected nodes and links
@@ -256,19 +248,19 @@ void GUI::render()
 
 inline void GUI::certainDeathNode(std::vector<std::unique_ptr<NodeBase>>& n_nodes, const std::unordered_set<int>& death_node) {
     n_nodes.erase(
-        std::remove_if(n_nodes.begin(), n_nodes.end(),
-            [&death_node](const std::unique_ptr<NodeBase>& node){
-                if (!node->IsProtected()) return false; // do not remove if protected
-                return death_node.count(node->GetId()) > 0;
-            }),
-        n_nodes.end());
+    std::remove_if(n_nodes.begin(), n_nodes.end(),
+        [&death_node](const std::unique_ptr<NodeBase>& node){
+            if (!node->IsProtected()) return false; // do not remove if protected
+            return death_node.count(node->GetId()) > 0;
+        }),
+    n_nodes.end());
 }
 
 inline void GUI::certainDeathLink(std::vector<Link>& n_links, std::unordered_set<int>& death_link){
     n_links.erase(
-            std::remove_if(n_links.begin(), n_links.end(),
-            [&death_link](const Link& link) {
-                return death_link.count(link.id) > 0;
-            }),
-        n_links.end());
+        std::remove_if(n_links.begin(), n_links.end(),
+        [&death_link](const Link& link) {
+            return death_link.count(link.id) > 0;
+        }),
+    n_links.end());
 }

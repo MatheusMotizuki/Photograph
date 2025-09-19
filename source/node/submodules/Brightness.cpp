@@ -1,12 +1,7 @@
 #include "node/submodules/Brightness.hpp"
 
-BrightnessNode::BrightnessNode() : NodeBase("Brightness Node", PinType::Both, "brightness_node", true, ImVec4(0.6f, 0.4f, 0.9f, 1.0f)) {
-    std::cout << "creating brightness node" << std::endl;
-}
-
-BrightnessNode::~BrightnessNode() {
-    std::cout << "destroying brightness node" << std::endl;
-}
+BrightnessNode::BrightnessNode() : NodeBase("Brightness Node", PinType::Both, "brightness_node", true, ImVec4(0.6f, 0.4f, 0.9f, 1.0f)) { }
+BrightnessNode::~BrightnessNode() {}
 
 unsigned int BrightnessNode::GetBorderColor() const {
     return IM_COL32(153, 102, 230, 255); // Matches ImVec4(0.6f, 0.4f, 0.9f, 1.0f)
