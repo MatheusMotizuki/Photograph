@@ -4,11 +4,22 @@
 #include "imnodes.h"
 #include "style.hpp"
 
-#include <iostream>
+#include <memory>
+#include <vector>
 #include <string>
-#include <any>
+#include <iostream>
+#include <algorithm>
+#include <unordered_set>
 
 enum class PinType { Input, Output, Both };
+
+struct Link {
+    int id;
+    int init_attr;
+    int end_attr;
+
+    inline static int link_next_id = 1;
+};
 
 class NodeBase {
 private:

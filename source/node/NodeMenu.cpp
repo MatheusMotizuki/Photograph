@@ -41,3 +41,21 @@ bool NodeMenu::Draw() {
 
 NodeMenu::NodeType NodeMenu::GetNodeType() const { return nodeType; }
 ImVec2 NodeMenu::GetClickPos() const { return position; }
+
+std::unique_ptr<NodeBase> NodeMenu::CreateNode(NodeMenu::NodeType type) {
+    switch (type)
+    {
+    case NodeMenu::NodeType::MonochromeNode:
+        return std::make_unique<MonochromeNode>();
+        break;
+    case NodeMenu::NodeType::BrightnessNode:
+        return std::make_unique<BrightnessNode>();
+        break;
+    case NodeMenu::NodeType::BlurNode:
+        return std::make_unique<BlurNode>();
+        break;
+    default:
+        return nullptr;
+        break;
+    }
+}

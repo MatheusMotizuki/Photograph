@@ -2,14 +2,11 @@
 
 InputNode::InputNode(SDL_Renderer* renderer) 
     : NodeBase("Input Node", PinType::Output, "input_node", false, ImVec4(0.2f, 0.7f, 1.0f, 1.0f))
-    , m_renderer(renderer) 
-{
+    , m_renderer(renderer) {
     ImNodes::SetNodeScreenSpacePos(GetId(), ImVec2(60, 50));
-    std::cout << "creating input node" << std::endl;
 }
 
 InputNode::~InputNode() {
-    std::cout << "destroying input node" << std::endl;
     if (m_texture) {
         SDL_DestroyTexture(m_texture);
         m_texture = nullptr;
@@ -32,21 +29,14 @@ void InputNode::NodeContent() {
     if (openPicker) {
         filePicker.ShowFileDialog(&openPicker);
 
-        if (m_texture) {
-            SDL_DestroyTexture(m_texture);
-            m_texture = nullptr;
-        }
-        if (m_image_data) {
-            stbi_image_free(m_image_data);
-            m_image_data = nullptr;
-        }
+        if (m_texture) { SDL_DestroyTexture(m_texture); m_texture = nullptr; }
+        if (m_image_data) { stbi_image_free(m_image_data); m_image_data = nullptr; }
 
-        if (filePicker.GetSelectedFile()) {
-            m_image_data = stbi_load(filePicker.selected_file, &width, &height, &og_chans, 0);
-        }
+        if (filePicker.GetSelectedFile()) m_image_data = stbi_load(filePicker.selected_file, &width, &height, &og_chans, 0);
 
         // if image data was loaded successfully
-        if (m_image_data) {
+        if (m_image_data)
+        {
             SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(
                 (void*)m_image_data, width, height, og_chans * 8, og_chans * width, 
                 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
@@ -64,7 +54,8 @@ void InputNode::NodeContent() {
         float scale = 1.0f;
         ImVec2 size;
 
-        if (image_w > m_width) { // simple check to display the image better
+        if (image_w > m_width)
+        { // simple check to display the image better
             scale = m_width / image_w;
             size = ImVec2(m_width, image_h * scale);
         } else if (image_h > m_height) {
@@ -79,10 +70,7 @@ void InputNode::NodeContent() {
         ImGui::EndChild();
     }
 
-    if (ImGui::Button("Upload image", ImVec2(200, 30))) {
-        openPicker = true;
-    }
-
+    if (ImGui::Button("Upload image", ImVec2(200, 30))) openPicker = true;
     popStyle();
 }
 

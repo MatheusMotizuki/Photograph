@@ -149,7 +149,7 @@ void GUI::newFrame()
     ImNodes::BeginNodeEditor();
     
     const bool open_menu = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
-        ImNodes::IsEditorHovered() && ImGui::IsMouseDown(1) && selected_nodes.empty();
+        ImNodes::IsEditorHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right, false) && selected_nodes.empty();
 
     // TODO: remake this but better
     // Ensure input and output nodes are created and added to n_nodes only once, outside of newFrame.
@@ -164,7 +164,7 @@ void GUI::newFrame()
     if (open_menu) ImGui::OpenPopup("add node");
     if (Menu.Draw()) {
         ImVec2 position = Menu.GetClickPos();
-        std::unique_ptr<NodeBase> node = createNode(Menu.GetNodeType());
+        std::unique_ptr<NodeBase> node = Menu.CreateNode(Menu.GetNodeType());
         if (node) {
             ImNodes::SetNodeScreenSpacePos(node->GetId(), position);
             n_nodes.push_back(std::move(node));
@@ -181,7 +181,7 @@ void GUI::newFrame()
         bool selected = ImNodes::IsNodeSelected(node->GetId());
         if (selected) {
             selected_nodes.insert(node->GetId());
-            if(ImGui::IsMouseDown(1)) ImGui::OpenPopup((node->GetInternalTitle() + "_" + std::to_string(node->GetId())).c_str());
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Right, false)) ImGui::OpenPopup((node->GetInternalTitle() + "_" + std::to_string(node->GetId())).c_str());
         }
         node->Description();
     }
@@ -191,6 +191,11 @@ void GUI::newFrame()
 
         if (ImNodes::IsLinkSelected(link.id)) {
             selected_links.insert(link.id);
+        }
+
+        bool selected = ImNodes::IsLinkSelected(link.id);
+        if (select) {
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Right, false)) std::cout << "selected" << std::endl;
         }
     }
 
@@ -266,23 +271,4 @@ inline void GUI::certainDeathLink(std::vector<Link>& n_links, std::unordered_set
                 return death_link.count(link.id) > 0;
             }),
         n_links.end());
-}
-
-std::unique_ptr<NodeBase> GUI::createNode(NodeMenu::NodeType type)
-{
-    switch (type)
-    {
-    case NodeMenu::NodeType::MonochromeNode:
-        return std::make_unique<MonochromeNode>();
-        break;
-    case NodeMenu::NodeType::BrightnessNode:
-        return std::make_unique<BrightnessNode>();
-        break;
-    case NodeMenu::NodeType::BlurNode:
-        return std::make_unique<BlurNode>();
-        break;
-    default:
-        return nullptr;
-        break;
-    }
 }
