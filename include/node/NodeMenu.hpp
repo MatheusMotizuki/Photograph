@@ -31,9 +31,9 @@ public:
     std::vector<MenuItem> items{
         {"Input node", NodeType::InputNode},
         // --
-        {"Monochrome node", NodeType::MonochromeNode},
-        {"Brightness node", NodeType::BrightnessNode},
-        {"Blur node", NodeType::BlurNode},
+        {"Monochrome", NodeType::MonochromeNode},
+        {"Brightness", NodeType::BrightnessNode},
+        {"Blur", NodeType::BlurNode},
         // --
         {"Output node", NodeType::OutputNode},
     };

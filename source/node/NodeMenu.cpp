@@ -1,11 +1,6 @@
 #include "node/NodeMenu.hpp"
 
 bool NodeMenu::Draw() {
-    const bool new_node = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
-    ImNodes::IsEditorHovered() && ImGui::IsMouseDown(1);
-
-    if (new_node) ImGui::OpenPopup("add node");
-
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12, 12));
     ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 4.0f);
 
@@ -14,18 +9,25 @@ bool NodeMenu::Draw() {
     if (ImGui::BeginPopup("add node")) {
         position = ImGui::GetMousePosOnOpeningCurrentPopup();
 
-        ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.75f, 1.0f), "Add a new node");
+        ImGui::TextColored(ImVec4(0.2f, 0.6f, 1.0f, 1.0f), "Add a new node");
         ImGui::Separator();
 
         ImGui::Spacing();
         for (size_t i = 1; i + 1 < items.size(); ++i) {
             const auto& item = items[i];
-            if (ImGui::MenuItem(item.label)) {
+            // Set a custom color for the menu item background when hovered/selected
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.196f, 0.196f, 0.196f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
+
+            if (ImGui::Selectable(item.label)) {
                 nodeType = item.type;
                 created = true;
-                ImGui::CloseCurrentPopup();
+                ImGui::PopStyleColor(3);
                 break;
             }
+
+            ImGui::PopStyleColor(3);
             ImGui::Spacing();
         }
         ImGui::EndPopup();
