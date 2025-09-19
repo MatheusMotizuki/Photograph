@@ -1,12 +1,7 @@
 #include "node/submodules/Monochrome.hpp"
 
-MonochromeNode::MonochromeNode() : NodeBase("Monochrome Node", PinType::Both, "monochrome_node", true, ImVec4(0.0f, 1.0f, 1.0f, 1.0f)){
-    std::cout << "creating monochrome node" << std::endl;
-}
-
-MonochromeNode::~MonochromeNode() {
-    std::cout << "destroying monochrome node" << std::endl;
-}
+MonochromeNode::MonochromeNode() : NodeBase("Monochrome Node", PinType::Both, "monochrome_node", true, ImVec4(0.0f, 1.0f, 1.0f, 1.0f)) {}
+MonochromeNode::~MonochromeNode() {}
 
 unsigned int MonochromeNode::GetBorderColor() const {
     return IM_COL32(0, 255, 255, 255);
