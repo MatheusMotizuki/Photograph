@@ -5,6 +5,16 @@
 #include <string>
 #include <vector>
 
+#include "node/NodeBase.hpp"
+
+// In 'n' out
+#include "node/submodules/io/Input.hpp"
+#include "node/submodules/io/Output.hpp"
+// Common
+#include "node/submodules/Monochrome.hpp"
+#include "node/submodules/Brightness.hpp"
+#include "node/submodules/Blur.hpp"
+
 class NodeMenu {
 private:
     bool open = false;
@@ -42,4 +52,7 @@ public:
 
     NodeType GetNodeType() const;
     ImVec2 GetClickPos() const;
+
+    // Node factory
+    std::unique_ptr<NodeBase> CreateNode(NodeType type);
 };

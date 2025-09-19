@@ -72,68 +72,56 @@ public:
         float child_height = window_height - ImGui::GetCursorPosY() - button_height - 20.0f;
 
         ImGui::BeginChild("##parents", ImVec2(180, child_height), true);
-        ImGui::BeginListBox("##", ImVec2(-1, -1));
-        parent_path = current_path.parent_path();
+        if (ImGui::BeginListBox("##", ImVec2(-1, -1))) {
+            parent_path = current_path.parent_path();
 
-        if(current_path != current_path.root_path()) {
-            if (ImGui::Selectable("..", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick)) {
-                if (ImGui::IsMouseDoubleClicked(0)) {
-                    current_path = parent_path;
+            if(current_path != current_path.root_path()) {
+                if (ImGui::Selectable("..", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick)) {
+                    if (ImGui::IsMouseDoubleClicked(0)) {
+                        current_path = parent_path;
+                    }
                 }
             }
-        }
 
-        for (auto &entry : std::filesystem::directory_iterator(parent_path)) {
-            if (!entry.is_directory()) continue;
-            std::string name = entry.path().filename().string() + "/";
-            std::string id = "##" + entry.path().string();
-            if (ImGui::Selectable((name + id).c_str(), false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick, ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                current_path = entry.path();
+            for (auto &entry : std::filesystem::directory_iterator(parent_path)) {
+                if (!entry.is_directory()) continue;
+                std::string name = entry.path().filename().string() + "/";
+                std::string id = "##" + entry.path().string();
+                if (ImGui::Selectable((name + id).c_str(), false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick, ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                    current_path = entry.path();
+                }
             }
-        }
 
-        ImGui::EndListBox();
+            ImGui::EndListBox();
+        }
         ImGui::EndChild();
 
         ImGui::SameLine();
-
         ImGui::BeginChild("##actual", ImVec2(-1, child_height), true);
-        ImGui::BeginListBox("##", ImVec2(-1, -1));
-        for (auto &entry : std::filesystem::directory_iterator(current_path)) {
-            std::string name = entry.path().filename().string();
-            std::string id = "##" + entry.path().string();
-            bool is_selected = (!current_file.empty() && std::filesystem::path(current_file) == entry.path());
-            if (entry.is_directory()) {
-                if (ImGui::Selectable((name + "/" + id).c_str(), false, ImGuiSelectableFlags_AllowDoubleClick)) {
-                    if (ImGui::IsMouseDoubleClicked(0)) {
-                        current_path = entry.path();
-                        current_file.clear();
+        if (ImGui::BeginListBox("##", ImVec2(-1, -1))) {
+            for (auto &entry : std::filesystem::directory_iterator(current_path)) {
+                std::string name = entry.path().filename().string();
+                std::string id = "##" + entry.path().string();
+                bool is_selected = (!current_file.empty() && std::filesystem::path(current_file) == entry.path());
+                if (entry.is_directory()) {
+                    if (ImGui::Selectable((name + "/" + id).c_str(), false, ImGuiSelectableFlags_AllowDoubleClick)) {
+                        if (ImGui::IsMouseDoubleClicked(0)) {
+                            current_path = entry.path();
+                            current_file.clear();
+                        }
                     }
-                }
-            } else {
-                auto ext = entry.path().extension().string();
-                if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
-                    if (ImGui::Selectable((name + id).c_str(), is_selected, ImGuiSelectableFlags_AllowDoubleClick)) {
-                        current_file = entry.path().string();
+                } else {
+                    auto ext = entry.path().extension().string();
+                    if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
+                        if (ImGui::Selectable((name + id).c_str(), is_selected, ImGuiSelectableFlags_AllowDoubleClick)) {
+                            current_file = entry.path().string();
+                        }
                     }
                 }
             }
+            ImGui::EndListBox();
         }
-        ImGui::EndListBox();
         ImGui::EndChild();
-
-        ImGui::SetCursorPosY(window_height - button_height - 10.0f);
-
-        // New Folder button aligned left
-        ImGui::Button("New Folder");
-
-        // Move cursor to the right for Cancel and Select buttons
-        float button_width = ImGui::CalcTextSize("Cancel").x + ImGui::GetStyle().FramePadding.x * 2.0f;
-        float select_button_width = ImGui::CalcTextSize("Select").x + ImGui::GetStyle().FramePadding.x * 2.0f;
-        float spacing = ImGui::GetStyle().ItemSpacing.x;
-        float total_width = button_width + select_button_width + spacing;
-
-        ImGui::SameLine(ImGui::GetWindowWidth() - total_width - ImGui::GetStyle().WindowPadding.x);
 
         if (ImGui::Button("Close")) {
             *open = false;

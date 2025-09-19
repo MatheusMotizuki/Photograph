@@ -1,15 +1,11 @@
 #include "node/submodules/io/Output.hpp"
 
 OutputNode::OutputNode() 
-    : NodeBase("Output Node", PinType::Input, "output_node", false, ImVec4(0.3137f, 1.0f, 0.7059f, 1.0f)) 
-{
+    : NodeBase("Output Node", PinType::Input, "output_node", false, ImVec4(0.3137f, 1.0f, 0.7059f, 1.0f)) {
     ImNodes::SetNodeScreenSpacePos(GetId(), ImVec2(900, 350));
-    std::cout << "creating output node" << std::endl; 
 }
 
-OutputNode::~OutputNode() {
-    std::cout << "destroying output node" << std::endl;
-}
+OutputNode::~OutputNode() {}
 
 bool OutputNode::ShouldDisplayText() const { return false; }
 
