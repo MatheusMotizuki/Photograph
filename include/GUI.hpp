@@ -14,6 +14,8 @@
 
 #include <SDL2/SDL.h>
 
+#include "node/Link.hpp"
+
 #include "node/NodeBase.hpp"
 #include "node/NodeMenu.hpp"
 
@@ -26,6 +28,23 @@
 #include "node/submodules/Blur.hpp"
 
 class GUI {
+private:
+    SDL_Window* m_window;
+    SDL_Renderer* m_renderer;
+    bool m_initialized;
+
+    // nodes related
+    std::vector<std::unique_ptr<NodeBase>> n_nodes;
+    std::unordered_set<int> selected_nodes;
+
+    // links related
+    std::vector<Link> n_links;
+    std::unordered_set<int> selected_links;
+
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar 
+    | ImGuiWindowFlags_NoCollapse
+    | ImGuiWindowFlags_MenuBar;
+
 public:
     GUI(SDL_Window* window, SDL_Renderer* renderer);
     ~GUI();
@@ -41,7 +60,7 @@ public:
     void popStyle();
 
     inline void certainDeathNode(
-        std::vector<std::unique_ptr<NodeBase>>& n_nodes,
+        std::vector<std::unique_ptr<NodeBase>>& n_nodes, 
         const std::unordered_set<int>& death_node
     );
 
@@ -55,16 +74,4 @@ public:
 
     std::unordered_set<int> death_node;
     std::unordered_set<int> death_link;
-
-private:
-    SDL_Window* m_window;
-    SDL_Renderer* m_renderer;
-    bool m_initialized;
-
-    std::vector<std::unique_ptr<NodeBase>> n_nodes;
-    std::vector<Link> n_links;
-
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar 
-    | ImGuiWindowFlags_NoCollapse
-    | ImGuiWindowFlags_MenuBar;
 };

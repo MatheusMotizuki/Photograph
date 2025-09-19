@@ -8,11 +8,13 @@ GUI::GUI(SDL_Window* window, SDL_Renderer* renderer)
     , m_renderer(renderer)
     , m_initialized(false)
 {
-    std::cout << "Initialize GUI\n";
+    std::cout << "GUI says: hello world!" << std::endl;
 }
 
 GUI::~GUI()
 {
+    std::cout << "GUI says: bye bye" << std::endl;
+    n_links.clear();
     n_nodes.clear();
     shutdown();
 }
@@ -28,7 +30,7 @@ bool GUI::initialize()
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.IniFilename = nullptr; // Disable .ini file loading
 
-    // Load Montserrat fonts
+    // montserrat
     // io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Black.ttf", 18.0f);
     // io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Bold.ttf", 18.0f);
     // io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-SemiBold.ttf", 18.0f);
@@ -37,6 +39,8 @@ bool GUI::initialize()
     // io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Italic.ttf", 18.0f);
     // io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Light.ttf", 18.0f);
     // io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Thin.ttf", 18.0f);
+
+    // inter
     io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Black.ttf", 18.0f);
     io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-BlackItalic.ttf", 18.0f);
     io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Bold.ttf", 18.0f);
@@ -55,6 +59,9 @@ bool GUI::initialize()
     io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-SemiBoldItalic.ttf", 18.0f);
     io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Thin.ttf", 18.0f);
     io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-ThinItalic.ttf", 18.0f);
+
+    // consolas
+    io.Fonts->AddFontFromFileTTF("assets/fonts/consolas/Inconsolata-Regular.ttf", 16.0f);
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -119,7 +126,7 @@ void GUI::popStyle()
 }
 
 void GUI::newFrame()
-{    
+{
     ImGui_ImplSDLRenderer2_NewFrame();
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();    
@@ -129,15 +136,34 @@ void GUI::newFrame()
     ImGui::SetNextWindowPos(viewport->Pos);
     ImGui::SetNextWindowSize(viewport->Size);
 
-    ImGui::Begin("photoGraph", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration);
+    ImGui::Begin("photoGraph", nullptr, 
+        ImGuiWindowFlags_NoTitleBar | 
+        ImGuiWindowFlags_NoCollapse | 
+        ImGuiWindowFlags_AlwaysAutoResize | 
+        ImGuiWindowFlags_NoMove | 
+        ImGuiWindowFlags_NoNav | 
+        ImGuiWindowFlags_NoDecoration
+    );
     GUI::setStyle();
-    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[11]); // Setup default font
+    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[18]); // Setup default font
     ImNodes::BeginNodeEditor();
     
+    const bool open_menu = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+        ImNodes::IsEditorHovered() && ImGui::IsMouseDown(1) && selected_nodes.empty();
+
+    // TODO: remake this but better
+    // Ensure input and output nodes are created and added to n_nodes only once, outside of newFrame.
+    static bool input_output_added = false;
+    if (!input_output_added) {
+        n_nodes.push_back(std::make_unique<InputNode>(m_renderer));
+        n_nodes.push_back(std::make_unique<OutputNode>());
+        input_output_added = true;
+    }
+
     NodeMenu Menu;
+    if (open_menu) ImGui::OpenPopup("add node");
     if (Menu.Draw()) {
         ImVec2 position = Menu.GetClickPos();
-
         std::unique_ptr<NodeBase> node = createNode(Menu.GetNodeType());
         if (node) {
             ImNodes::SetNodeScreenSpacePos(node->GetId(), position);
@@ -145,21 +171,37 @@ void GUI::newFrame()
         }
     }
 
-    // Create unique input and output nodes only once and draw them first
-    static std::unique_ptr<InputNode> input = std::make_unique<InputNode>(m_renderer); input->Draw();
-    static std::unique_ptr<OutputNode> output = std::make_unique<OutputNode>(); output->Draw();
+    // clear both before checking
+    selected_nodes.clear();
+    selected_links.clear();
 
     for (const auto& node : n_nodes) {
         node->Draw();
-        if (node->IsSelected()) {
-            death_node.insert(node->GetId());
+        int nodeID = node->GetId();
+        bool selected = ImNodes::IsNodeSelected(node->GetId());
+        if (selected) {
+            selected_nodes.insert(node->GetId());
+            if(ImGui::IsMouseDown(1)) ImGui::OpenPopup((node->GetInternalTitle() + "_" + std::to_string(node->GetId())).c_str());
         }
+        node->Description();
     }
 
     for (const Link& link : n_links) {
         ImNodes::Link(link.id, link.init_attr, link.end_attr);
+
         if (ImNodes::IsLinkSelected(link.id)) {
-            death_link.insert(link.id);
+            selected_links.insert(link.id);
+        }
+    }
+
+    // delete selected nodes and links
+    if (ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
+        for (int id : selected_nodes) {
+            death_node.insert(id);
+        }
+
+        for (int id : selected_links) {
+            death_link.insert(id);
         }
     }
 
@@ -167,6 +209,8 @@ void GUI::newFrame()
         ImGui::IsKeyPressed(ImGuiKey_Delete, false)
     ) { certainDeathNode(n_nodes, death_node); death_node.clear(); }
 
+    // TODO: check if the node attached to this link
+    // was delete, if so delete this link also.
     if (!death_link.empty() && 
         ImGui::IsKeyPressed(ImGuiKey_Delete, false)
     ) { certainDeathLink(n_links, death_link); death_link.clear(); }

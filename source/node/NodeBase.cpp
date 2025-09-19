@@ -3,7 +3,6 @@
 // private
 
 int NodeBase::next_id = 1; // Initialize the static counter for automatic ID generation
-int Link::link_next_id = 1;
 
 void NodeBase::SetNodeStyle(unsigned int borderColor = IM_COL32(58, 58, 58, 255)) {
   style.SetStyle(borderColor);
@@ -43,9 +42,9 @@ void NodeBase::OutputText() {
 
 // publiq
 
-NodeBase::NodeBase(const std::string& title, PinType pinType, 
+NodeBase::NodeBase(const std::string& title, PinType pinType, const std::string& internal_title,
                    bool deletable, ImVec4 title_col)
-    : n_id(next_id++), n_title(title), n_pinType(pinType), 
+    : n_id(next_id++), n_title(title), n_pinType(pinType), n_internal_title(internal_title),
       deletable(deletable), n_title_col(title_col) {
     n_input_id = n_id * 10 + 1;
     n_output_id = n_id * 10 + 2;
@@ -57,15 +56,16 @@ void NodeBase::Draw() {
   ImNodes::BeginNode(n_id);
 
   ImNodes::BeginNodeTitleBar();
-  ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[12]);
+  ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[18]);
   ImGui::TextColored(n_title_col, "%s", n_title.c_str());
   ImGui::PopFont();
+  ImGui::SameLine();
   ImNodes::EndNodeTitleBar();
 
   InputText();
 
   if(n_pinType == PinType::Both){
-      ImGui::SameLine();
+    ImGui::SameLine();
   }
 
   OutputText();
@@ -79,4 +79,4 @@ void NodeBase::Draw() {
 bool NodeBase::IsProtected() const { return deletable; }
 int NodeBase::GetId() const { return n_id; }
 bool NodeBase::IsSelected() const { return ImNodes::IsNodeSelected(n_id); }
-std::string NodeBase::GetTitle() const { return n_title; }
+std::string NodeBase::GetInternalTitle() const { return n_internal_title; }

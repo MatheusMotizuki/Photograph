@@ -4,13 +4,22 @@
 
 class BlurNode : public NodeBase {
 private:
-// skip
+    ImVec4 nodeColor = ImVec4(1.0f, 0.37f, 0.0f, 0.15f);
 
 protected:
+    void Process() override;
     void NodeContent() override;
     unsigned int GetBorderColor() const override;
+
+    void setStyleCombo();
+    void popStyleCombo();
+
+    void setStyleSlider();
+    void popStyleSlider();
 
 public:
     BlurNode();
     ~BlurNode();
+
+    void Description() override;
 };
