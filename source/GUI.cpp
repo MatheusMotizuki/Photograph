@@ -83,6 +83,11 @@ bool GUI::initialize()
     SDL_SetWindowResizable(SDL_GL_GetCurrentWindow(), SDL_TRUE);
     SDL_SetWindowMaximumSize(SDL_GL_GetCurrentWindow(), 1920, 1080);
 
+    // Add the input and output nodes upon GUI
+    // creation, so they'll be added only once
+    n_nodes.push_back(std::make_unique<InputNode>(m_renderer));
+    n_nodes.push_back(std::make_unique<OutputNode>());
+
     m_initialized = true;
     return true;
 }
@@ -147,15 +152,6 @@ void GUI::newFrame()
     
     const bool open_menu = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
         ImNodes::IsEditorHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right, false) && selected_nodes.empty();
-
-    // TODO: remake this but better
-    // Ensure input and output nodes are created and added to n_nodes only once, outside of newFrame.
-    static bool input_output_added = false;
-    if (!input_output_added) {
-        n_nodes.push_back(std::make_unique<InputNode>(m_renderer));
-        n_nodes.push_back(std::make_unique<OutputNode>());
-        input_output_added = true;
-    }
 
     NodeMenu Menu;
     if (open_menu) ImGui::OpenPopup("add node");

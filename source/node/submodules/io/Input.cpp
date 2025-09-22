@@ -42,8 +42,6 @@ void InputNode::NodeContent() {
                 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
             m_texture = SDL_CreateTextureFromSurface(m_renderer, surface);
             SDL_FreeSurface(surface);
-        } else {
-            ImGui::Text("Failed to load image");
         }
     }
 
