@@ -67,11 +67,13 @@ add_executable(photoGraph
     source/node/NodeMenu.cpp
     # --
     source/node/submodules/io/Input.cpp
-    source/node/submodules/io/Output.cpp
+    source/node/submodules/io/Preview.cpp
+    source/node/submodules/io/Download.cpp
     # --
     source/node/submodules/Blur.cpp
     source/node/submodules/Brightness.cpp
     source/node/submodules/Monochrome.cpp
+    source/node/submodules/RGB.cpp
     # --
     ${IMGUI_SOURCES}
     ${IMNODES_SOURCES}

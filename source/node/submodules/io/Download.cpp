@@ -1,16 +1,15 @@
-#include "node/submodules/io/Output.hpp"
+#include "node/submodules/io/Download.hpp"
 
-OutputNode::OutputNode() 
-    : NodeBase("Output Node", PinType::Input, "output_node", false, ImVec4(0.3137f, 1.0f, 0.7059f, 1.0f)) {
+DownloadNode::DownloadNode() 
+    : NodeBase("Download Node", PinType::Input, "download_node", false, ImVec4(0.3137f, 1.0f, 0.7059f, 1.0f)) {
     ImNodes::SetNodeScreenSpacePos(GetId(), ImVec2(900, 350));
 }
 
-OutputNode::~OutputNode() {}
+DownloadNode::~DownloadNode() {}
 
-bool OutputNode::ShouldDisplayText() const { return false; }
+bool DownloadNode::ShouldDisplayText() const { return false; }
 
-void OutputNode::NodeContent() {
-    ImGui::TextDisabled("Output Preview:");
+void DownloadNode::NodeContent() {
     setStyle();
 
     if (ImGui::Button("Download image", ImVec2(200, 30))) { 
@@ -21,7 +20,7 @@ void OutputNode::NodeContent() {
     popStyle();
 }
 
-void OutputNode::setStyle() {
+void DownloadNode::setStyle() {
     ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(18, 18, 18, 255));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(61, 61, 61, 255));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, IM_COL32(31, 31, 31, 255));
@@ -32,32 +31,30 @@ void OutputNode::setStyle() {
     ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[15]);
 }
 
-void OutputNode::popStyle() {
+void DownloadNode::popStyle() {
     ImGui::PopFont();
     ImGui::PopStyleColor(5);
     ImGui::PopStyleVar(2);
 }
 
-void OutputNode::Process() {
+void DownloadNode::Process() {
 
 }
 
-void OutputNode::Description() {
+void DownloadNode::Description() {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12, 12));
     ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 4.0f);
 
     std::string popup_name = GetInternalTitle() + "_" + std::to_string(GetId());
     if (ImGui::BeginPopup(popup_name.c_str())) {
-        ImGui::TextColored(ImVec4(0.31f, 1.0f, 0.71f, 1.0f), "Output Node");
+        ImGui::TextColored(ImVec4(0.31f, 1.0f, 0.71f, 1.0f), "Download Node");
         ImGui::Separator();
         ImGui::Spacing();
-        ImGui::Text("Displays the final result of your node graph.");
-        ImGui::Text("Use this node to preview and export the processed image.");
-        ImGui::Spacing();
-        ImGui::Text("Click 'Download image' to save the output to disk.");
+        ImGui::Text("Allows you to download the final output image.");
+        ImGui::Text("Use this node to save the processed image to your device.");
         ImGui::Spacing();
         ImGui::TextDisabled("Tip: Connect your last processing node");
-        ImGui::TextDisabled("to this node to see the final effect.");
+        ImGui::TextDisabled("to this node, then click 'Download image'.");
         ImGui::EndPopup();
     }
     ImGui::PopStyleVar(2);

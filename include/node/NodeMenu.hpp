@@ -3,17 +3,19 @@
 #include "imgui.h"
 #include "imnodes.h"
 #include <string>
-#include <vector>
+#include <array>
 
 #include "node/NodeBase.hpp"
 
 // In 'n' out
 #include "node/submodules/io/Input.hpp"
-#include "node/submodules/io/Output.hpp"
+#include "node/submodules/io/Preview.hpp"
+#include "node/submodules/io/Download.hpp"
 // Common
 #include "node/submodules/Monochrome.hpp"
 #include "node/submodules/Brightness.hpp"
 #include "node/submodules/Blur.hpp"
+#include "node/submodules/RGB.hpp"
 
 class NodeMenu {
 private:
@@ -29,7 +31,9 @@ public:
         MonochromeNode,
         BrightnessNode,
         BlurNode,
-        OutputNode,
+        RGBNode,
+        PreviewNode,
+        DownloadNode,
     } nodeType;
 
     struct MenuItem {
@@ -37,15 +41,17 @@ public:
         NodeType type;
     };
 
-    // Always put the new nodes in between the input and output
-    std::vector<MenuItem> items{
-        {"Input node", NodeType::InputNode},
+    // Always put the new nodes in between the input and download
+    std::array<MenuItem, 7> items = {
+        "Input node", NodeType::InputNode,
         // --
-        {"Monochrome", NodeType::MonochromeNode},
-        {"Brightness", NodeType::BrightnessNode},
-        {"Blur", NodeType::BlurNode},
+        "Monochrome", NodeType::MonochromeNode,
+        "Brightness", NodeType::BrightnessNode,
+        "Blur", NodeType::BlurNode,
+        "RGB", NodeType::RGBNode,
+        "Preview", NodeType::PreviewNode,
         // --
-        {"Output node", NodeType::OutputNode},
+        "Download node", NodeType::DownloadNode,
     };
 
     bool Draw();
@@ -54,5 +60,5 @@ public:
     ImVec2 GetClickPos() const;
 
     // Node factory
-    std::unique_ptr<NodeBase> CreateNode(NodeType type);
+    std::unique_ptr<NodeBase> CreateNode(NodeType type, SDL_Renderer* renderer);
 };

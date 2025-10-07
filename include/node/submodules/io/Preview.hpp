@@ -11,7 +11,7 @@
 
 #include "FilePicker.h"
 
-class InputNode : public NodeBase {
+class PreviewNode : public NodeBase{
 private:
     unsigned char* m_image_data = nullptr;
     SDL_Renderer* m_renderer = nullptr;
@@ -22,13 +22,14 @@ private:
 
 protected:
     void NodeContent() override;
+    unsigned int GetBorderColor() const override;
     bool ShouldDisplayText() const override;
-    void setStyle();
     void popStyle();
+    void setStyle();
 
 public:
-    InputNode(SDL_Renderer* renderer);
-    ~InputNode();
+    PreviewNode(SDL_Renderer* renderer);
+    ~PreviewNode();
 
     void Description() override;
     void Process() override;

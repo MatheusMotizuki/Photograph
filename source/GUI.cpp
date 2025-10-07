@@ -86,7 +86,7 @@ bool GUI::initialize()
     // Add the input and output nodes upon GUI
     // creation, so they'll be added only once
     n_nodes.push_back(std::make_unique<InputNode>(m_renderer));
-    n_nodes.push_back(std::make_unique<OutputNode>());
+    n_nodes.push_back(std::make_unique<DownloadNode>());
 
     m_initialized = true;
     return true;
@@ -157,7 +157,7 @@ void GUI::newFrame()
     if (open_menu) ImGui::OpenPopup("add node");
     if (Menu.Draw()) {
         ImVec2 position = Menu.GetClickPos();
-        std::unique_ptr<NodeBase> node = Menu.CreateNode(Menu.GetNodeType());
+        std::unique_ptr<NodeBase> node = Menu.CreateNode(Menu.GetNodeType(), m_renderer);
         if (node) {
             ImNodes::SetNodeScreenSpacePos(node->GetId(), position);
             n_nodes.push_back(std::move(node));

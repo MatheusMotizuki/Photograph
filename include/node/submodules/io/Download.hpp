@@ -2,7 +2,7 @@
 
 #include "node/NodeBase.hpp"
 
-class OutputNode : public NodeBase{
+class DownloadNode : public NodeBase{
 private:
 // skip
 
@@ -12,11 +12,10 @@ protected:
     void popStyle();
     void setStyle();
 
-    void Process() override;
-
 public:
-    OutputNode();
-    ~OutputNode();
+    DownloadNode();
+    ~DownloadNode();
 
     void Description() override;
+    void Process() override;
 };

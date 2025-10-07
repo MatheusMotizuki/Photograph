@@ -42,7 +42,7 @@ bool NodeMenu::Draw() {
 NodeMenu::NodeType NodeMenu::GetNodeType() const { return nodeType; }
 ImVec2 NodeMenu::GetClickPos() const { return position; }
 
-std::unique_ptr<NodeBase> NodeMenu::CreateNode(NodeMenu::NodeType type) {
+std::unique_ptr<NodeBase> NodeMenu::CreateNode(NodeMenu::NodeType type, SDL_Renderer* renderer) {
     switch (type)
     {
     case NodeMenu::NodeType::MonochromeNode:
@@ -53,6 +53,12 @@ std::unique_ptr<NodeBase> NodeMenu::CreateNode(NodeMenu::NodeType type) {
         break;
     case NodeMenu::NodeType::BlurNode:
         return std::make_unique<BlurNode>();
+        break;
+    case NodeMenu::NodeType::RGBNode:
+        return std::make_unique<RGBNode>();
+        break;
+    case NodeMenu::NodeType::PreviewNode:
+        return std::make_unique<PreviewNode>(renderer);
         break;
     default:
         return nullptr;
