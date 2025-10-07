@@ -7,7 +7,6 @@ private:
 // skip
 
 protected:
-    void Process() override;
     void NodeContent() override;
     unsigned int GetBorderColor() const override;
 
@@ -16,4 +15,5 @@ public:
     ~BrightnessNode();
 
     void Description() override;
+    void Process() override;
 };
