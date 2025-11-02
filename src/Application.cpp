@@ -1,14 +1,18 @@
 #include "Application.hpp"
 #include <iostream>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#endif
+
 Application::Application(const std::string& title, int width, int height)
     : m_title(title)
     , m_width(width)
     , m_height(height)
     , m_running(false)
     , m_window(nullptr)
-    , m_renderer(nullptr)
-    , m_gui(nullptr)
+    , m_gl_context(nullptr)
 {
 }
 
@@ -19,48 +23,53 @@ Application::~Application()
 
 bool Application::initialize()
 {
-    // Initialize SDL
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
+    if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
-        std::cerr << "Error initializing SDL: " << SDL_GetError() << std::endl;
+        std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
         return false;
     }
 
-    // Create window
-    SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+    // OpenGL 3.0 + GLSL 130
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+
     m_window = SDL_CreateWindow(
         m_title.c_str(),
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         m_width,
         m_height,
-        window_flags
+        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
     );
 
     if (!m_window)
     {
-        std::cerr << "Error creating window: " << SDL_GetError() << std::endl;
+        std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
+        SDL_Quit();
         return false;
     }
 
-    // Create renderer
-    m_renderer = SDL_CreateRenderer(
-        m_window,
-        -1,
-        SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED
-    );
-
-    if (!m_renderer)
+    m_gl_context = SDL_GL_CreateContext(m_window);
+    if (!m_gl_context)
     {
-        std::cerr << "Error creating renderer: " << SDL_GetError() << std::endl;
+        std::cerr << "SDL_GL_CreateContext Error: " << SDL_GetError() << std::endl;
         return false;
     }
+
+    SDL_GL_MakeCurrent(m_window, m_gl_context);
+    SDL_GL_SetSwapInterval(1); // Enable vsync
 
     // Initialize GUI
-    m_gui = std::make_unique<GUI>(m_window, m_renderer);
+    m_gui = std::make_unique<GUI>(m_window, m_gl_context);
     if (!m_gui->initialize())
     {
-        std::cerr << "Error initializing GUI" << std::endl;
+        std::cerr << "Failed to initialize GUI" << std::endl;
         return false;
     }
 
@@ -70,12 +79,30 @@ bool Application::initialize()
 
 void Application::run()
 {
+#ifdef __EMSCRIPTEN__
+    // For Emscripten, we need to use emscripten_set_main_loop
+    emscripten_set_main_loop_arg(
+        [](void* arg) {
+            Application* app = static_cast<Application*>(arg);
+            if (!app->processEvents()) {
+                emscripten_cancel_main_loop();
+                return;
+            }
+            app->update();
+            app->render();
+        },
+        this,
+        0,
+        1
+    );
+#else
     while (m_running)
     {
         m_running = processEvents();
         update();
         render();
     }
+#endif
 }
 
 bool Application::processEvents()
@@ -88,8 +115,7 @@ bool Application::processEvents()
         if (event.type == SDL_QUIT)
             return false;
         
-        if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE &&
-            event.window.windowID == SDL_GetWindowID(m_window))
+        if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)
             return false;
     }
     
@@ -98,33 +124,27 @@ bool Application::processEvents()
 
 void Application::update()
 {
-    m_gui->newFrame();
+    // Update logic here
 }
 
 void Application::render()
 {
-    // Clear the renderer
-    SDL_SetRenderDrawColor(m_renderer, 100, 100, 100, 255);
-    SDL_RenderClear(m_renderer);
-    
-    // Render GUI
     m_gui->render();
-    
-    // Present the renderer
-    SDL_RenderPresent(m_renderer);
+    SDL_GL_SwapWindow(m_window);
 }
 
 void Application::shutdown()
 {
     if (m_gui)
     {
+        m_gui->shutdown();
         m_gui.reset();
     }
     
-    if (m_renderer)
+    if (m_gl_context)
     {
-        SDL_DestroyRenderer(m_renderer);
-        m_renderer = nullptr;
+        SDL_GL_DeleteContext(m_gl_context);
+        m_gl_context = nullptr;
     }
     
     if (m_window)

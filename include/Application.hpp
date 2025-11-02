@@ -12,19 +12,18 @@ public:
 
     bool initialize();
     void run();
-    void shutdown();
-
-private:
     bool processEvents();
     void update();
     void render();
+    void shutdown();
 
+private:
     std::string m_title;
     int m_width;
     int m_height;
     bool m_running;
 
     SDL_Window* m_window;
-    SDL_Renderer* m_renderer;
+    SDL_GLContext m_gl_context;
     std::unique_ptr<GUI> m_gui;
 };

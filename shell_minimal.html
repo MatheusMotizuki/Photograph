@@ -1,57 +1,329 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en-us">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
-    <title>photoGraph</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhotoGraph - Node-based Image Editor</title>
     <style>
-        body { 
-            margin: 0; 
-            background-color: black; 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+            color: #ffffff;
+            overflow: hidden;
         }
-        .emscripten { 
-            position: absolute; 
-            top: 0px; 
-            left: 0px; 
-            margin: 0px; 
-            border: 0; 
-            width: 100%; 
-            height: 100%; 
-            overflow: hidden; 
-            display: block; 
-            image-rendering: optimizeSpeed; 
-            image-rendering: -moz-crisp-edges; 
-            image-rendering: -o-crisp-edges; 
-            image-rendering: -webkit-optimize-contrast; 
-            image-rendering: optimize-contrast; 
-            image-rendering: crisp-edges; 
-            image-rendering: pixelated; 
-            -ms-interpolation-mode: nearest-neighbor; 
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            z-index: 10;
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 300;
+            margin: 0;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient 3s ease infinite;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #canvas {
+            display: block;
+            border: none;
+            background: #1a1a1a;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 100;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top: 3px solid #4ecdc4;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            width: 300px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 20px auto;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ecdc4, #45b7d1);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .error {
+            color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .controls {
+                bottom: 10px;
+                right: 10px;
+                flex-direction: column;
+            }
+            
+            .progress-bar {
+                width: 250px;
+            }
         }
     </style>
 </head>
 <body>
-    <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+    <div class="container">
+        <div class="header">
+            <h1>PhotoGraph</h1>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
+            
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <div class="loading-text">Loading PhotoGraph...</div>
+                <div id="progress-text">Initializing...</div>
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill"></div>
+                </div>
+            </div>
+
+            <div id="error" class="error hidden">
+                <h3>Failed to load PhotoGraph</h3>
+                <p id="error-message">An error occurred while loading the application.</p>
+                <button class="btn" onclick="location.reload()">Reload</button>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="fullscreen-btn" class="btn" onclick="toggleFullscreen()">Fullscreen</button>
+            <button id="reset-btn" class="btn" onclick="resetApplication()">Reset</button>
+        </div>
+    </div>
+
     <script type='text/javascript'>
-      var Module = {
-        preRun: [],
-        postRun: [],
-        print: (function() {
-          return function(text) {
-            console.log(text);
-          };
-        })(),
-        printErr: function(text) {
-          console.error(text);
-        },
-        canvas: (function() {
-          var canvas = document.getElementById('canvas');
-          return canvas;
-        })(),
-        setStatus: function(text) {
-          console.log("status: " + text);
+        // Progress tracking
+        var Module = {
+            preRun: [],
+            postRun: [],
+            print: (function() {
+                return function(text) {
+                    if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+                    console.log(text);
+                };
+            })(),
+            printErr: function(text) {
+                if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+                console.error(text);
+            },
+            canvas: (function() {
+                var canvas = document.getElementById('canvas');
+                
+                // Prevent right-click context menu
+                canvas.addEventListener("contextmenu", function(e) {
+                    e.preventDefault();
+                });
+                
+                // Prevent default touch behavior on mobile
+                canvas.addEventListener("touchstart", function(e) {
+                    e.preventDefault();
+                });
+                canvas.addEventListener("touchend", function(e) {
+                    e.preventDefault();
+                });
+                canvas.addEventListener("touchmove", function(e) {
+                    e.preventDefault();
+                });
+                
+                return canvas;
+            })(),
+            setStatus: function(text) {
+                const progressText = document.getElementById('progress-text');
+                if (progressText) {
+                    progressText.innerText = text;
+                }
+                console.log(text);
+            },
+            totalDependencies: 0,
+            monitorRunDependencies: function(left) {
+                this.totalDependencies = Math.max(this.totalDependencies, left);
+                const progress = this.totalDependencies > 0 ? 
+                    ((this.totalDependencies - left) / this.totalDependencies * 100) : 100;
+                
+                const progressFill = document.getElementById('progress-fill');
+                if (progressFill) {
+                    progressFill.style.width = progress + '%';
+                }
+                
+                if (left == 0) {
+                    document.getElementById('loading').classList.add('hidden');
+                    // Resize canvas to fit window
+                    resizeCanvas();
+                } else {
+                    Module.setStatus('Loading... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')');
+                }
+            },
+            onRuntimeInitialized: function() {
+                Module.setStatus('Application ready!');
+                setTimeout(() => {
+                    document.getElementById('loading').classList.add('hidden');
+                    resizeCanvas();
+                }, 1000);
+            }
+        };
+
+        // Error handling
+        window.addEventListener('error', function(e) {
+            showError('JavaScript Error: ' + e.message);
+        });
+
+        function showError(message) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('error-message').innerText = message;
+            document.getElementById('error').classList.remove('hidden');
         }
-      };
+
+        // Utility functions
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(() => {
+                    resizeCanvas();
+                });
+            } else {
+                document.exitFullscreen().then(() => {
+                    resizeCanvas();
+                });
+            }
+        }
+
+        function resetApplication() {
+            location.reload();
+        }
+
+        function resizeCanvas() {
+            const canvas = document.getElementById('canvas');
+            const dpr = window.devicePixelRatio || 1;
+            
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
+            canvas.style.width = window.innerWidth + 'px';
+            canvas.style.height = window.innerHeight + 'px';
+            
+            // SDL automatically handles canvas resizing, no need for ccall
+            // The canvas resize will be picked up by SDL's event system
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Initial canvas setup
+        resizeCanvas();
+
+        // Set loading status
+        Module.setStatus('Downloading...');
     </script>
     {{{ SCRIPT }}}
 </body>

@@ -1,20 +1,32 @@
 #include "Application.hpp"
 #include <iostream>
 
-int main(int argc, char** argv)
-{
-    // Create application instance
-    Application app("photoGraph", 1280, 720);
+#ifdef EMSCRIPTEN
+#include <emscripten.h>
+#endif
 
-    // Initialize the application
+int main(int argc, char* argv[])
+{
+    std::cout << "Starting PhotoGraph application..." << std::endl;
+    
+#ifdef EMSCRIPTEN
+    std::cout << "Running in WebAssembly mode" << std::endl;
+#else
+    std::cout << "Running in native mode" << std::endl;
+#endif
+
+    Application app("PhotoGraph", 1280, 720);
+    
+    std::cout << "Initializing application..." << std::endl;
     if (!app.initialize())
     {
         std::cerr << "Failed to initialize application" << std::endl;
-        return -1;
+        return 1;
     }
-
-    // Run the application
+    
+    std::cout << "Application initialized successfully, starting main loop..." << std::endl;
     app.run();
-
+    
+    std::cout << "Application shutting down..." << std::endl;
     return 0;
 }

@@ -28,12 +28,10 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/MatheusMotizuki/imnodes.git
     GIT_TAG master
     GIT_SHALLOW TRUE
-    # PATCH_COMMAND powershell -Command "(Get-Content ${imnodes_SOURCE_DIR}/imnodes.cpp) -replace 'FILE\\* file = ImFileOpen\\(file_name, \"wt\"\\);', '#ifndef IMGUI_DISABLE_FILE_FUNCTIONS`nFILE* file = ImFileOpen(file_name, \"wt\");' -replace 'fwrite\\(data, sizeof\\(char\\), data_size, file\\);', 'fwrite(data, sizeof(char), data_size, file);`nfclose(file);`n#endif' | Set-Content ${imnodes_SOURCE_DIR}/imnodes.cpp"
 )
-FetchContent_MakeAvailable(imnodes) # Explicitly populate imnodes to handle it specially
+FetchContent_MakeAvailable(imnodes)
 if(NOT imnodes_POPULATED)
     FetchContent_Populate(imnodes)
-    # We don't call add_subdirectory for imnodes because it doesn't have a CMakeLists.txt file
 endif()
 
 # Fetch SDL2 last, this takes a lot to build
@@ -49,21 +47,15 @@ FetchContent_MakeAvailable(SDL2)
 set(SDL_AUDIO OFF CACHE BOOL "" FORCE)
 set(SDL_DISABLE_AUDIO ON CACHE BOOL "" FORCE)
 
-# Configure ImGui source files
+# Configure ImGui source files (always use OpenGL3 backend)
 set(IMGUI_SOURCES
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
     ${imgui_SOURCE_DIR}/imgui_tables.cpp
     ${imgui_SOURCE_DIR}/imgui_widgets.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
 )
-
-# Add appropriate backend based on platform
-if(EMSCRIPTEN)
-    list(APPEND IMGUI_SOURCES ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp)
-else()
-    list(APPEND IMGUI_SOURCES ${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer2.cpp)
-endif()
 
 # Set ImNodes source files
 set(IMNODES_SOURCES
@@ -97,10 +89,6 @@ target_include_directories(photoGraph PRIVATE
     ${imnodes_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
-
-if (WIN32)
-    target_link_libraries(photoGraph PRIVATE gdiplus)
-endif()
 
 # Define IMGUI_DEFINE_MATH_OPERATORS to fix ImNodes build issue
 target_compile_definitions(photoGraph PRIVATE IMGUI_DEFINE_MATH_OPERATORS)

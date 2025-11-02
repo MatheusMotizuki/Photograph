@@ -1,11 +1,26 @@
 #include "GUI.hpp"
+#include <algorithm>
+#include <iostream>
+#include <vector>
+#include <memory>
+#include <unordered_set>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#ifdef __EMSCRIPTEN__
+#include <GLES3/gl3.h>
+#else
+#include <SDL2/SDL_opengles2.h>
+#endif
 
-GUI::GUI(SDL_Window* window, SDL_Renderer* renderer)
+// In 'n' out
+#include "node/submodules/io/Input.hpp"
+#include "node/submodules/io/Output.hpp"
+// Common
+#include "node/submodules/Monochrome.hpp"
+#include "node/submodules/Blur.hpp"
+
+GUI::GUI(SDL_Window* window, SDL_GLContext gl_context)
     : m_window(window)
-    , m_renderer(renderer)
+    , m_gl_context(gl_context)
     , m_initialized(false)
 {
     std::cout << "GUI says: hello world!" << std::endl;
@@ -28,19 +43,13 @@ bool GUI::initialize()
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
-    io.IniFilename = nullptr; // Disable .ini file loading
-
-    // montserrat
-    // io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Black.ttf", 18.0f);
-    // io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Bold.ttf", 18.0f);
-    // io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-SemiBold.ttf", 18.0f);
-    // io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Medium.ttf", 18.0f);
-    // io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Regular.ttf", 18.0f);
-    // io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Italic.ttf", 18.0f);
-    // io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Light.ttf", 18.0f);
-    // io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Thin.ttf", 18.0f);
-
-    // inter
+    
+#ifdef __EMSCRIPTEN__
+    io.IniFilename = nullptr; // Disable .ini file for web
+#else
+    io.IniFilename = nullptr; // Disable .ini file
+    
+    // Load fonts only for native builds
     io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Black.ttf", 18.0f);
     io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-BlackItalic.ttf", 18.0f);
     io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Bold.ttf", 18.0f);
@@ -59,32 +68,14 @@ bool GUI::initialize()
     io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-SemiBoldItalic.ttf", 18.0f);
     io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Thin.ttf", 18.0f);
     io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-ThinItalic.ttf", 18.0f);
-
-    // consolas
-    io.Fonts->AddFontFromFileTTF("assets/fonts/consolas/Inconsolata-Regular.ttf", 16.0f);
+#endif
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
 
     // Setup Platform/Renderer backends
-    if (!ImGui_ImplSDL2_InitForSDLRenderer(m_window, m_renderer))
-    {
-        return false;
-    }
-    
-    if (!ImGui_ImplSDLRenderer2_Init(m_renderer))
-    {
-        ImGui_ImplSDL2_Shutdown();
-        ImNodes::DestroyContext();
-        ImGui::DestroyContext();
-        return false;
-    }
-
-    SDL_SetWindowMinimumSize(SDL_GL_GetCurrentWindow(), 640, 480);
-    SDL_SetWindowSize(SDL_GL_GetCurrentWindow(), 1280, 720);
-    SDL_SetWindowPosition(SDL_GL_GetCurrentWindow(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-    SDL_SetWindowResizable(SDL_GL_GetCurrentWindow(), SDL_TRUE);
-    SDL_SetWindowMaximumSize(SDL_GL_GetCurrentWindow(), 1920, 1080);
+    ImGui_ImplSDL2_InitForOpenGL(m_window, m_gl_context);
+    ImGui_ImplOpenGL3_Init("#version 300 es");
 
     m_initialized = true;
     return true;
@@ -94,7 +85,7 @@ void GUI::shutdown()
 {
     if (m_initialized)
     {
-        ImGui_ImplSDLRenderer2_Shutdown();
+        ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplSDL2_Shutdown();
         ImNodes::DestroyContext();
         ImGui::DestroyContext();
@@ -125,11 +116,11 @@ void GUI::popStyle()
     ImNodes::PopColorStyle(); // BoxSelectorOutline
 }
 
-void GUI::newFrame()
-{    
-    ImGui_ImplSDLRenderer2_NewFrame();
+void GUI::render()
+{
+    ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame();
-    ImGui::NewFrame();    
+    ImGui::NewFrame();
 
     // Dockspace setup
     ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -145,7 +136,12 @@ void GUI::newFrame()
         ImGuiWindowFlags_NoDecoration
     );
     GUI::setStyle();
-    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[18]); // Setup default font
+    
+    // Use default font for WASM, Inter font for native
+#ifndef __EMSCRIPTEN__
+    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[11]); // Setup default font
+#endif
+    
     ImNodes::BeginNodeEditor();
     
     NodeMenu Menu;
@@ -204,55 +200,23 @@ void GUI::newFrame()
 
     ImNodes::MiniMap(0.2f, ImNodesMiniMapLocation_BottomRight);
     ImNodes::EndNodeEditor();
-
-    int start_attr, end_attr;
-    if (ImNodes::IsLinkCreated(&start_attr, &end_attr)) {
-        Link link;
-        link.id = Link::link_next_id++;
-        link.init_attr = start_attr;
-        link.end_attr = end_attr;
-        n_links.push_back(link);
-    }
-
-    int link_id;
-    if (ImNodes::IsLinkDestroyed(&link_id)) {
-        n_links.erase(
-            std::remove_if(n_links.begin(), n_links.end(),
-            [link_id](const Link& link) { return link.id == link_id; }),
-            n_links.end()
-        );
-    }
-
+    
+#ifndef __EMSCRIPTEN__
     ImGui::PopFont();
+#endif
+    
     GUI::popStyle();
     ImGui::End();
-}
 
-void GUI::render()
-{
     ImGui::Render();
-    ImGuiIO& io = ImGui::GetIO();
-    SDL_RenderSetScale(m_renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
-    ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), m_renderer);
-}
-
-inline void GUI::certainDeathNode(std::vector<std::unique_ptr<NodeBase>>& n_nodes, const std::unordered_set<int>& death_node) {
-    n_nodes.erase(
-        std::remove_if(n_nodes.begin(), n_nodes.end(),
-            [&death_node](const std::unique_ptr<NodeBase>& node){
-                if (!node->IsProtected()) return false; // do not remove if protected
-                return death_node.count(node->GetId()) > 0;
-            }),
-        n_nodes.end());
-}
-
-inline void GUI::certainDeathLink(std::vector<Link>& n_links, std::unordered_set<int>& death_link){
-    n_links.erase(
-            std::remove_if(n_links.begin(), n_links.end(),
-            [&death_link](const Link& link) {
-                return death_link.count(link.id) > 0;
-            }),
-        n_links.end());
+    
+    int display_w, display_h;
+    SDL_GetWindowSize(m_window, &display_w, &display_h);
+    glViewport(0, 0, display_w, display_h);
+    glClearColor(0.08f, 0.08f, 0.08f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 std::unique_ptr<NodeBase> GUI::createNode(NodeMenu::NodeType type)
