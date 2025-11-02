@@ -116,6 +116,11 @@ if(EMSCRIPTEN)
         "-sALLOW_MEMORY_GROWTH=1"
         "-sNO_EXIT_RUNTIME=0"
         "-sASSERTIONS=1"
+        "-sINITIAL_MEMORY=134217728"
+        "-sSTACK_SIZE=5242880"
+        "-sEXPORTED_FUNCTIONS=['_main','_malloc','_free','_OnImageLoadedFromJS']"
+        "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','HEAPU8']"
+        "--preload-file=${CMAKE_CURRENT_SOURCE_DIR}/assets@/assets"
         "--shell-file=${CMAKE_CURRENT_SOURCE_DIR}/shell_minimal.html"
     )
     

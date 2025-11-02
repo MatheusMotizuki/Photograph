@@ -1,5 +1,34 @@
 #include "node/submodules/io/Input.hpp"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#endif
+
+// Global pointer to current InputNode instance for callback
+static InputNode* g_current_input_node = nullptr;
+
+// C function that JavaScript can call
+#ifdef __EMSCRIPTEN__
+extern "C" {
+    EMSCRIPTEN_KEEPALIVE
+    void OnImageLoadedFromJS(uint8_t* data, int len) {
+        if (g_current_input_node && data && len > 0) {
+            // Load image using stb_image
+            int width, height, channels;
+            unsigned char* image_data = stbi_load_from_memory(data, len, &width, &height, &channels, 4);
+            
+            if (image_data) {
+                g_current_input_node->LoadImageFromMemory(image_data, width, height, 4);
+            }
+            
+            // Free the temporary buffer
+            free(data);
+        }
+    }
+}
+#endif
+
 InputNode::InputNode() 
     : NodeBase("Input Node", PinType::Output, "input_node", false, ImVec4(0.2f, 0.7f, 1.0f, 1.0f))
 {
@@ -52,6 +81,14 @@ bool InputNode::CreateTextureFromData(unsigned char* data, int width, int height
     return true;
 }
 
+void InputNode::LoadImageFromMemory(unsigned char* data, int width, int height, int channels) {
+    if (m_image_data) {
+        stbi_image_free(m_image_data);
+    }
+    m_image_data = data;
+    CreateTextureFromData(data, width, height, channels);
+}
+
 bool InputNode::ShouldDisplayText() const { return false; }
 
 void InputNode::NodeContent() {
@@ -83,29 +120,57 @@ void InputNode::NodeContent() {
 
     // Button to load image
     if (ImGui::Button("Load Image", ImVec2(-1, 0))) {
-        // TODO: Implement file loading
-        // For web: you'll need to use HTML5 file API
-        // For native: use your FilePicker
-        
-#ifndef __EMSCRIPTEN__
-        // Native file loading example
-        // std::string filepath = filePicker.OpenFile("Image Files", "*.png;*.jpg;*.jpeg;*.bmp");
-        std::string filepath = "";
-        if (!filepath.empty()) {
-            int width, height, channels;
-            unsigned char* data = stbi_load(filepath.c_str(), &width, &height, &channels, 4); // Force RGBA
-            if (data) {
-                if (m_image_data) {
-                    stbi_image_free(m_image_data);
+        #ifdef __EMSCRIPTEN__
+            g_current_input_node = this; // Set global pointer for callback
+            
+            // Use EM_JS for cleaner JavaScript integration
+            EM_ASM({
+                if (!window.inputNodeFileInput) {
+                    var input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.style.display = 'none';
+                    
+                    input.onchange = function(e) {
+                        var file = e.target.files[0];
+                        if (file) {
+                            var reader = new FileReader();
+                            reader.onload = function(event) {
+                                var arrayBuffer = event.target.result;
+                                var uint8Array = new Uint8Array(arrayBuffer);
+                                var length = uint8Array.length;
+                                
+                                // Allocate memory in WASM heap
+                                var dataPtr = _malloc(length);
+                                
+                                // Copy data to WASM heap
+                                HEAPU8.set(uint8Array, dataPtr);
+                                
+                                // Call the C++ function
+                                _OnImageLoadedFromJS(dataPtr, length);
+                            };
+                            reader.readAsArrayBuffer(file);
+                        }
+                    };
+                    
+                    document.body.appendChild(input);
+                    window.inputNodeFileInput = input;
                 }
-                m_image_data = data;
-                CreateTextureFromData(data, width, height, 4);
-            }
-        }
-#else
-        // For web, you'll need to implement HTML5 file input
-        ImGui::TextColored(ImVec4(1, 0.5f, 0, 1), "Web file loading not yet implemented");
-#endif
+                
+                window.inputNodeFileInput.value = '';
+                window.inputNodeFileInput.click();
+            });
+        #else
+            // Native file loading
+            // std::string filepath = filePicker.OpenFile("Image Files", "*.png;*.jpg;*.jpeg;*.bmp");
+            // if (!filepath.empty()) {
+            //     int width, height, channels;
+            //     unsigned char* data = stbi_load(filepath.c_str(), &width, &height, &channels, 4);
+            //     if (data) {
+            //         LoadImageFromMemory(data, width, height, 4);
+            //     }
+            // }
+        #endif
     }
 
     popStyle();
@@ -122,12 +187,14 @@ void InputNode::setStyle() {
 
 #ifdef __EMSCRIPTEN__
     // Use default font on web
-    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+    if (ImGui::GetIO().Fonts->Fonts.Size > 0) {
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+    }
 #else
     // Check if font exists before accessing
     if (ImGui::GetIO().Fonts->Fonts.Size > 15) {
         ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[15]);
-    } else {
+    } else if (ImGui::GetIO().Fonts->Fonts.Size > 0) {
         ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
     }
 #endif

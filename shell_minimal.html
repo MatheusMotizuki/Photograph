@@ -2,302 +2,100 @@
 <html lang="en-us">
 <head>
     <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PhotoGraph - Node-based Image Editor</title>
+    <title>PhotoGraph</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
-            color: #ffffff;
+            background: #222;
             overflow: hidden;
         }
-
-        .container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            align-items: center;
-            justify-content: center;
-        }
-
-        @keyframes gradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        .canvas-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
+        
         #canvas {
             display: block;
-            border: none;
+            width: 100vw;
+            height: 100vh;
             background: #1a1a1a;
-            width: 100%;
-            height: 100%;
+            border: none;
             image-rendering: pixelated;
-            image-rendering: -moz-crisp-edges;
-            image-rendering: crisp-edges;
         }
 
-        .loading {
+        .top-right {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            z-index: 100;
-        }
-
-        .spinner {
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            border-top: 3px solid #4ecdc4;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            font-size: 1.2em;
-            margin-bottom: 10px;
-        }
-
-        .progress-bar {
-            width: 300px;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            overflow: hidden;
-            margin: 20px auto;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4ecdc4, #45b7d1);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        .controls {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
+            top: 16px;
+            right: 16px;
             display: flex;
-            gap: 10px;
+            gap: 8px;
             z-index: 10;
         }
 
-        .btn {
-            padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 6px;
-            color: white;
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            background: rgba(128,128,128,0.18);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
         }
 
-        .btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.3);
+        .icon-btn:hover {
+            background: rgba(80,80,80,0.28);
         }
-
-        .error {
-            color: #ff6b6b;
-            background: rgba(255, 107, 107, 0.1);
-            border: 1px solid rgba(255, 107, 107, 0.3);
-            padding: 20px;
-            border-radius: 8px;
-            max-width: 600px;
-            text-align: center;
+        
+        .icon-btn:active {
+            transform: scale(0.92);
         }
-
-        .hidden {
-            display: none !important;
-        }
-
-        /* Mobile responsiveness */
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2em;
-            }
-            
-            .controls {
-                bottom: 10px;
-                right: 10px;
-                flex-direction: column;
-            }
-            
-            .progress-bar {
-                width: 250px;
-            }
+        .icon {
+            width: 18px;
+            height: 18px;
+            fill: #fff;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="canvas-container">
-            <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
-            
-            <div id="loading" class="loading">
-                <div class="spinner"></div>
-                <div class="loading-text">Loading PhotoGraph...</div>
-                <div id="progress-text">Initializing...</div>
-                <div class="progress-bar">
-                    <div id="progress-fill" class="progress-fill"></div>
-                </div>
-            </div>
-
-            <div id="error" class="error hidden">
-                <h3>Failed to load PhotoGraph</h3>
-                <p id="error-message">An error occurred while loading the application.</p>
-                <button class="btn" onclick="location.reload()">Reload</button>
-            </div>
-        </div>
-
-        <div class="controls">
-            <button id="fullscreen-btn" class="btn" onclick="toggleFullscreen()">Fullscreen</button>
-            <button id="reset-btn" class="btn" onclick="resetApplication()">Reset</button>
-        </div>
+    <div class="top-right">
+        <button class="icon-btn" title="Fullscreen" onclick="toggleFullscreen()">
+            <svg class="icon" viewBox="0 0 20 20">
+                <path d="M3 3h5V1H1v7h2V3zm14 0h-5V1h7v7h-2V3zm-14 14h5v2H1v-7h2v5zm14 0h-5v2h7v-7h-2v5z"/>
+            </svg>
+        </button>
+        <button class="icon-btn" title="AI">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none"><path d="m12.594 23.258l-.012.002l-.071.035l-.02.004l-.014-.004l-.071-.036q-.016-.004-.024.006l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.016-.018m.264-.113l-.014.002l-.184.093l-.01.01l-.003.011l.018.43l.005.012l.008.008l.201.092q.019.005.029-.008l.004-.014l-.034-.614q-.005-.019-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.003-.011l.018-.43l-.003-.012l-.01-.01z"/><path fill="#fff" d="M9.107 5.448c.598-1.75 3.016-1.803 3.725-.159l.06.16l.807 2.36a4 4 0 0 0 2.276 2.411l.217.081l2.36.806c1.75.598 1.803 3.016.16 3.725l-.16.06l-2.36.807a4 4 0 0 0-2.412 2.276l-.081.216l-.806 2.361c-.598 1.75-3.016 1.803-3.724.16l-.062-.16l-.806-2.36a4 4 0 0 0-2.276-2.412l-.216-.081l-2.36-.806c-1.751-.598-1.804-3.016-.16-3.724l.16-.062l2.36-.806A4 4 0 0 0 8.22 8.025l.081-.216zM19 2a1 1 0 0 1 .898.56l.048.117l.35 1.026l1.027.35a1 1 0 0 1 .118 1.845l-.118.048l-1.026.35l-.35 1.027a1 1 0 0 1-1.845.117l-.048-.117l-.35-1.026l-1.027-.35a1 1 0 0 1-.118-1.845l.118-.048l1.026-.35l.35-1.027A1 1 0 0 1 19 2"/></g></svg>
+        </button>
     </div>
-
-    <script type='text/javascript'>
-        // Progress tracking
+    <canvas id="canvas" tabindex="-1"></canvas>
+    <script>
+        // WASM canvas setup
         var Module = {
-            preRun: [],
-            postRun: [],
-            print: (function() {
-                return function(text) {
-                    if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-                    console.log(text);
-                };
-            })(),
-            printErr: function(text) {
-                if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-                console.error(text);
-            },
             canvas: (function() {
                 var canvas = document.getElementById('canvas');
-                
-                // Prevent right-click context menu
-                canvas.addEventListener("contextmenu", function(e) {
-                    e.preventDefault();
-                });
-                
-                // Prevent default touch behavior on mobile
-                canvas.addEventListener("touchstart", function(e) {
-                    e.preventDefault();
-                });
-                canvas.addEventListener("touchend", function(e) {
-                    e.preventDefault();
-                });
-                canvas.addEventListener("touchmove", function(e) {
-                    e.preventDefault();
-                });
-                
+                canvas.addEventListener("contextmenu", e => e.preventDefault());
                 return canvas;
-            })(),
-            setStatus: function(text) {
-                const progressText = document.getElementById('progress-text');
-                if (progressText) {
-                    progressText.innerText = text;
-                }
-                console.log(text);
-            },
-            totalDependencies: 0,
-            monitorRunDependencies: function(left) {
-                this.totalDependencies = Math.max(this.totalDependencies, left);
-                const progress = this.totalDependencies > 0 ? 
-                    ((this.totalDependencies - left) / this.totalDependencies * 100) : 100;
-                
-                const progressFill = document.getElementById('progress-fill');
-                if (progressFill) {
-                    progressFill.style.width = progress + '%';
-                }
-                
-                if (left == 0) {
-                    document.getElementById('loading').classList.add('hidden');
-                    // Resize canvas to fit window
-                    resizeCanvas();
-                } else {
-                    Module.setStatus('Loading... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')');
-                }
-            },
-            onRuntimeInitialized: function() {
-                Module.setStatus('Application ready!');
-                setTimeout(() => {
-                    document.getElementById('loading').classList.add('hidden');
-                    resizeCanvas();
-                }, 1000);
-            }
+            })()
         };
-
-        // Error handling
-        window.addEventListener('error', function(e) {
-            showError('JavaScript Error: ' + e.message);
-        });
-
-        function showError(message) {
-            document.getElementById('loading').classList.add('hidden');
-            document.getElementById('error-message').innerText = message;
-            document.getElementById('error').classList.remove('hidden');
-        }
-
-        // Utility functions
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().then(() => {
-                    resizeCanvas();
-                });
-            } else {
-                document.exitFullscreen().then(() => {
-                    resizeCanvas();
-                });
-            }
-        }
-
-        function resetApplication() {
-            location.reload();
-        }
 
         function resizeCanvas() {
             const canvas = document.getElementById('canvas');
             const dpr = window.devicePixelRatio || 1;
-            
             canvas.width = window.innerWidth * dpr;
             canvas.height = window.innerHeight * dpr;
             canvas.style.width = window.innerWidth + 'px';
             canvas.style.height = window.innerHeight + 'px';
-            
-            // SDL automatically handles canvas resizing, no need for ccall
-            // The canvas resize will be picked up by SDL's event system
         }
-
-        // Handle window resize
         window.addEventListener('resize', resizeCanvas);
-        
-        // Initial canvas setup
         resizeCanvas();
 
-        // Set loading status
-        Module.setStatus('Downloading...');
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
     </script>
     {{{ SCRIPT }}}
 </body>

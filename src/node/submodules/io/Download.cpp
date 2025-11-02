@@ -28,7 +28,17 @@ void DownloadNode::setStyle() {
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.6f);
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
     ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(80, 255, 180, 255));
-    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[15]);
+#ifdef __EMSCRIPTEN__
+    // Use default font on web
+    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+#else
+    // Check if font exists before accessing
+    if (ImGui::GetIO().Fonts->Fonts.Size > 15) {
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[15]);
+    } else {
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+    }
+#endif
 }
 
 void DownloadNode::popStyle() {

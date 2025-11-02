@@ -19,8 +19,8 @@
 class InputNode : public NodeBase {
 private:
     unsigned char* m_image_data = nullptr;
-    GLuint m_texture = 0;  // OpenGL texture instead of SDL_Texture
-    FilePicker filePicker;
+    GLuint m_texture = 0;
+    // FilePicker filePicker;
     int m_tex_w = 0;
     int m_tex_h = 0;
 
@@ -31,13 +31,14 @@ protected:
     void setStyle();
 
     void Process() override;
-
-    // Helper to create OpenGL texture from image data
     bool CreateTextureFromData(unsigned char* data, int width, int height, int channels);
 
 public:
     InputNode();
+    ~InputNode();
     
     void Description() override;
-    ~InputNode();
+    
+    // Public method for loading image from memory (called from JS callback)
+    void LoadImageFromMemory(unsigned char* data, int width, int height, int channels);
 };

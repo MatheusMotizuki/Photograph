@@ -24,8 +24,27 @@ bool GUI::initialize()
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 #ifdef __EMSCRIPTEN__
     io.IniFilename = nullptr;
-    // Use default font for web build
-    io.Fonts->AddFontDefault();
+    
+    // Load fonts from preloaded virtual filesystem
+    // The --preload-file maps assets/ to /assets in the virtual FS
+    ImFont* font = io.Fonts->AddFontFromFileTTF("/assets/fonts/inter/Inter_18pt-Black.ttf", 18.0f);
+    if (!font) {
+        std::cout << "Warning: Failed to load custom font, using default" << std::endl;
+        io.Fonts->AddFontDefault();
+    } else {
+        std::cout << "Custom font loaded successfully!" << std::endl;
+        // Load all your other fonts here
+        io.Fonts->AddFontFromFileTTF("/assets/fonts/inter/Inter_18pt-Bold.ttf", 18.0f);
+        io.Fonts->AddFontFromFileTTF("/assets/fonts/inter/Inter_18pt-ExtraBold.ttf", 18.0f);
+        // ... etc
+    }
+#else
+    io.IniFilename = "imgui.ini";
+    
+    // Native build - load from actual filesystem
+    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Black.ttf", 18.0f);
+    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Bold.ttf", 18.0f);
+    // ... etc
 #endif
 
     ImGui::StyleColorsDark();
