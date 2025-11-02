@@ -1,81 +1,53 @@
 #include "GUI.hpp"
-#include <algorithm>
-#include <iostream>
-#include <vector>
-#include <memory>
-#include <unordered_set>
 
-#ifdef __EMSCRIPTEN__
-#include <GLES3/gl3.h>
-#else
-#include <SDL2/SDL_opengles2.h>
-#endif
-
-// In 'n' out
-#include "node/submodules/io/Input.hpp"
-#include "node/submodules/io/Output.hpp"
-// Common
-#include "node/submodules/Monochrome.hpp"
-#include "node/submodules/Blur.hpp"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 GUI::GUI(SDL_Window* window, SDL_GLContext gl_context)
     : m_window(window)
     , m_gl_context(gl_context)
     , m_initialized(false)
 {
-    std::cout << "GUI says: hello world!" << std::endl;
 }
 
 GUI::~GUI()
 {
-    std::cout << "GUI says: bye bye" << std::endl;
-    n_links.clear();
-    n_nodes.clear();
     shutdown();
 }
 
 bool GUI::initialize()
 {
-    // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImNodes::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
-    
 #ifdef __EMSCRIPTEN__
-    io.IniFilename = nullptr; // Disable .ini file for web
-#else
-    io.IniFilename = nullptr; // Disable .ini file
-    
-    // Load fonts only for native builds
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Black.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-BlackItalic.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Bold.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-BoldItalic.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-ExtraBold.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-ExtraBoldItalic.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-ExtraLight.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-ExtraLightItalic.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Italic.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Light.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-LightItalic.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Medium.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-MediumItalic.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Regular.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-SemiBold.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-SemiBoldItalic.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Thin.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-ThinItalic.ttf", 18.0f);
+    io.IniFilename = nullptr;
+    // Use default font for web build
+    io.Fonts->AddFontDefault();
 #endif
 
-    // Setup Dear ImGui style
     ImGui::StyleColorsDark();
 
-    // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL(m_window, m_gl_context);
+    
+#ifdef __EMSCRIPTEN__
     ImGui_ImplOpenGL3_Init("#version 300 es");
+#else
+    ImGui_ImplOpenGL3_Init("#version 330");
+#endif
+
+#ifndef __EMSCRIPTEN__
+    SDL_SetWindowMinimumSize(SDL_GL_GetCurrentWindow(), 640, 480);
+    SDL_SetWindowSize(SDL_GL_GetCurrentWindow(), 1280, 720);
+    SDL_SetWindowPosition(SDL_GL_GetCurrentWindow(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    SDL_SetWindowResizable(SDL_GL_GetCurrentWindow(), SDL_TRUE);
+    SDL_SetWindowMaximumSize(SDL_GL_GetCurrentWindow(), 1920, 1080);
+#endif
+
+    n_nodes.push_back(std::make_unique<InputNode>());
+    n_nodes.push_back(std::make_unique<DownloadNode>());
 
     m_initialized = true;
     return true;
@@ -116,7 +88,7 @@ void GUI::popStyle()
     ImNodes::PopColorStyle(); // BoxSelectorOutline
 }
 
-void GUI::render()
+void GUI::newFrame()
 {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame();
@@ -136,28 +108,27 @@ void GUI::render()
         ImGuiWindowFlags_NoDecoration
     );
     GUI::setStyle();
-    
-    // Use default font for WASM, Inter font for native
-#ifndef __EMSCRIPTEN__
-    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[11]); // Setup default font
-#endif
-    
+    #ifdef __EMSCRIPTEN__
+        // Use default font for web build
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+    #else
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[18]); // Setup default font
+    #endif
     ImNodes::BeginNodeEditor();
-    
-    NodeMenu Menu;
-    if (Menu.Draw()) {
-        ImVec2 position = Menu.GetClickPos();
 
-        std::unique_ptr<NodeBase> node = createNode(Menu.GetNodeType());
+    const bool open_menu = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+        ImNodes::IsEditorHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right, false) && selected_nodes.empty();
+
+    if (open_menu) ImGui::OpenPopup("add node");
+
+    if (m_nodeMenu.Draw()) {
+        ImVec2 position = m_nodeMenu.GetClickPos();
+        std::unique_ptr<NodeBase> node = m_nodeMenu.CreateNode(m_nodeMenu.GetNodeType());
         if (node) {
             ImNodes::SetNodeScreenSpacePos(node->GetId(), position);
             n_nodes.push_back(std::move(node));
         }
     }
-
-    // Create unique input and output nodes only once and draw them first
-    static std::unique_ptr<InputNode> input = std::make_unique<InputNode>(m_renderer); input->Draw();
-    static std::unique_ptr<OutputNode> output = std::make_unique<OutputNode>(); output->Draw();
 
     // clear both before checking
     selected_nodes.clear();
@@ -165,9 +136,15 @@ void GUI::render()
 
     for (const auto& node : n_nodes) {
         node->Draw();
-        if (ImNodes::IsNodeSelected(node->GetId())) {
+        int nodeID = node->GetId();
+        bool selected = ImNodes::IsNodeSelected(node->GetId());
+        if (selected) {
             selected_nodes.insert(node->GetId());
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Right, false)) {
+                ImGui::OpenPopup((node->GetInternalTitle() + "_" + std::to_string(node->GetId())).c_str());
+            }
         }
+        node->Description();
     }
 
     for (const Link& link : n_links) {
@@ -178,8 +155,7 @@ void GUI::render()
         }
     }
 
-    // delete selected nodes
-    // delete selected links
+    // delete selected nodes and links
     if (ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
         for (int id : selected_nodes) {
             death_node.insert(id);
@@ -194,46 +170,60 @@ void GUI::render()
         ImGui::IsKeyPressed(ImGuiKey_Delete, false)
     ) { certainDeathNode(n_nodes, death_node); death_node.clear(); }
 
+    // TODO: check if the node attached to this link
+    // was delete, if so delete this link also.
     if (!death_link.empty() && 
         ImGui::IsKeyPressed(ImGuiKey_Delete, false)
     ) { certainDeathLink(n_links, death_link); death_link.clear(); }
 
     ImNodes::MiniMap(0.2f, ImNodesMiniMapLocation_BottomRight);
     ImNodes::EndNodeEditor();
-    
-#ifndef __EMSCRIPTEN__
+
+    int start_attr, end_attr;
+    if (ImNodes::IsLinkCreated(&start_attr, &end_attr)) {
+        Link link;
+        link.id = Link::link_next_id++;
+        link.init_attr = start_attr;
+        link.end_attr = end_attr;
+        n_links.push_back(link);
+    }
+
+    int link_id;
+    if (ImNodes::IsLinkDestroyed(&link_id)) {
+        n_links.erase(
+            std::remove_if(n_links.begin(), n_links.end(),
+            [link_id](const Link& link) { return link.id == link_id; }),
+            n_links.end()
+        );
+    }
+
     ImGui::PopFont();
-#endif
-    
     GUI::popStyle();
     ImGui::End();
+}
 
+void GUI::render()
+{
     ImGui::Render();
-    
-    int display_w, display_h;
-    SDL_GetWindowSize(m_window, &display_w, &display_h);
-    glViewport(0, 0, display_w, display_h);
-    glClearColor(0.08f, 0.08f, 0.08f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    
+    ImGuiIO& io = ImGui::GetIO();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-std::unique_ptr<NodeBase> GUI::createNode(NodeMenu::NodeType type)
-{
-    switch (type)
-    {
-    case NodeMenu::NodeType::MonochromeNode:
-        return std::make_unique<MonochromeNode>();
-        break;
-    case NodeMenu::NodeType::BrightnessNode:
-        return std::make_unique<BrightnessNode>();
-        break;
-    case NodeMenu::NodeType::BlurNode:
-        return std::make_unique<BlurNode>();
-        break;
-    default:
-        return nullptr;
-        break;
-    }
+inline void GUI::certainDeathNode(std::vector<std::unique_ptr<NodeBase>>& n_nodes, const std::unordered_set<int>& death_node) {
+    n_nodes.erase(
+    std::remove_if(n_nodes.begin(), n_nodes.end(),
+        [&death_node](const std::unique_ptr<NodeBase>& node){
+            if (!node->IsProtected()) return false; // do not remove if protected
+            return death_node.count(node->GetId()) > 0;
+        }),
+    n_nodes.end());
+}
+
+inline void GUI::certainDeathLink(std::vector<Link>& n_links, std::unordered_set<int>& death_link){
+    n_links.erase(
+        std::remove_if(n_links.begin(), n_links.end(),
+        [&death_link](const Link& link) {
+            return death_link.count(link.id) > 0;
+        }),
+    n_links.end());
 }

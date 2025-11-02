@@ -1,83 +1,117 @@
 #include "node/submodules/io/Input.hpp"
 
-InputNode::InputNode(SDL_Renderer* renderer) 
-    : NodeBase("Input Node", PinType::Output, false, ImVec4(0.2f, 0.7f, 1.0f, 1.0f))
-    , m_renderer(renderer) 
+InputNode::InputNode() 
+    : NodeBase("Input Node", PinType::Output, "input_node", false, ImVec4(0.2f, 0.7f, 1.0f, 1.0f))
 {
     ImNodes::SetNodeScreenSpacePos(GetId(), ImVec2(60, 50));
-    std::cout << "creating input node" << std::endl;
 }
 
 InputNode::~InputNode() {
-    std::cout << "destroying input node" << std::endl;
     if (m_texture) {
-        SDL_DestroyTexture(m_texture);
-        m_texture = nullptr;
+        glDeleteTextures(1, &m_texture);
+        m_texture = 0;
     }
     if (m_image_data) {
         stbi_image_free(m_image_data);
         m_image_data = nullptr;
     }
+}
+
+bool InputNode::CreateTextureFromData(unsigned char* data, int width, int height, int channels) {
+    if (!data) return false;
+
+    // Delete old texture if exists
+    if (m_texture) {
+        glDeleteTextures(1, &m_texture);
+    }
+
+    // Generate OpenGL texture
+    glGenTextures(1, &m_texture);
+    glBindTexture(GL_TEXTURE_2D, m_texture);
+
+    // Set texture parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // Determine format based on channels
+    GLenum format = GL_RGBA;
+    if (channels == 1) format = GL_RED;
+    else if (channels == 3) format = GL_RGB;
+    else if (channels == 4) format = GL_RGBA;
+
+    // Upload texture data
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    m_tex_w = width;
+    m_tex_h = height;
+
+    return true;
 }
 
 bool InputNode::ShouldDisplayText() const { return false; }
 
 void InputNode::NodeContent() {
+    ImGui::TextDisabled("Input Preview:");
     setStyle();
 
-    // and remember kids:
-    // always nullptr
-    // your pointers
-    // after they are free'd
-    if (m_texture) {
-        SDL_DestroyTexture(m_texture);
-        m_texture = nullptr;
-    }
-    if (m_image_data) {
-        stbi_image_free(m_image_data);
-        m_image_data = nullptr;
-    }
-
-    static bool openPicker = false;
-    static int width = 0, height = 0, og_chans = 0;
-
-    if (openPicker) {
-        filePicker.ShowFileDialog(&openPicker);
-        m_image_data = stbi_load(filePicker.selected_file, &width, &height, &og_chans, 0);
-
-        // if image data was loaded successfully
-        if (m_image_data) {
-            SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(
-                (void*)m_image_data, width, height, og_chans * 8, og_chans * width, 
-                0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-            m_texture = SDL_CreateTextureFromSurface(m_renderer, surface);
-            SDL_FreeSurface(surface);
-        }
-    }
-
-    // if we have a texture and image_data
+    // Display texture if loaded
     if (m_texture && m_image_data) {
-        float m_width = 300.f, m_height = 200.f;
-        float image_w = (float)width, image_h = (float)height;
-        float scale = std::min(m_width / image_w, m_height / image_h);
-        ImVec2 size(image_w * scale, image_h * scale);
+        float m_width = 200.f, m_height = 200.f; // cap the image size
+        float image_w = (float)m_tex_w, image_h = (float)m_tex_h;
+        float scale = 1.0f;
+        ImVec2 size;
 
-        ImGui::BeginChild("##input image", ImVec2(m_width, m_height), false);
+        if (image_w > m_width) {
+            scale = m_width / image_w;
+            size = ImVec2(m_width, image_h * scale);
+        } else if (image_h > m_height) {
+            scale = m_height / image_h;
+            size = ImVec2(image_w * scale, m_height);
+        } else {
+            size = ImVec2(image_w, image_h);
+        }
+
+        ImGui::BeginChild("##input image", ImVec2(m_width, size.y), false);
+        // Cast GLuint to ImTextureID (which is void* in OpenGL backend)
         ImGui::Image((ImTextureID)(intptr_t)m_texture, size);
         ImGui::EndChild();
     }
 
-    if (ImGui::Button("Upload image", ImVec2(300, 30))) {
-        openPicker = true;
+    // Button to load image
+    if (ImGui::Button("Load Image", ImVec2(-1, 0))) {
+        // TODO: Implement file loading
+        // For web: you'll need to use HTML5 file API
+        // For native: use your FilePicker
+        
+#ifndef __EMSCRIPTEN__
+        // Native file loading example
+        // std::string filepath = filePicker.OpenFile("Image Files", "*.png;*.jpg;*.jpeg;*.bmp");
+        std::string filepath = "";
+        if (!filepath.empty()) {
+            int width, height, channels;
+            unsigned char* data = stbi_load(filepath.c_str(), &width, &height, &channels, 4); // Force RGBA
+            if (data) {
+                if (m_image_data) {
+                    stbi_image_free(m_image_data);
+                }
+                m_image_data = data;
+                CreateTextureFromData(data, width, height, 4);
+            }
+        }
+#else
+        // For web, you'll need to implement HTML5 file input
+        ImGui::TextColored(ImVec4(1, 0.5f, 0, 1), "Web file loading not yet implemented");
+#endif
     }
 
     popStyle();
 }
 
 void InputNode::setStyle() {
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 12.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 3));
     ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(18, 18, 18, 255));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(61, 61, 61, 255));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, IM_COL32(31, 31, 31, 255));
@@ -85,15 +119,49 @@ void InputNode::setStyle() {
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.6f);
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
     ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(80, 160, 200, 255));
-    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[15]);
+
+#ifdef __EMSCRIPTEN__
+    // Use default font on web
+    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+#else
+    // Check if font exists before accessing
+    if (ImGui::GetIO().Fonts->Fonts.Size > 15) {
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[15]);
+    } else {
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+    }
+#endif
 }
 
 void InputNode::popStyle() {
     ImGui::PopFont();
     ImGui::PopStyleColor(5);
-    ImGui::PopStyleVar(5);
+    ImGui::PopStyleVar(2);
 }
 
 void InputNode::Process() {
     
+}
+
+void InputNode::Description() {
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12, 12));
+    ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 4.0f);
+
+    std::string popup_name = GetInternalTitle() + "_" + std::to_string(GetId());
+    if (ImGui::BeginPopup(popup_name.c_str())) {
+        ImGui::TextColored(ImVec4(0.2f, 0.7f, 1.0f, 1.0f), "Input Node");
+        ImGui::Separator();
+        ImGui::Spacing();
+        ImGui::Text("Loads an image from your computer");
+        ImGui::Text("and provides it as the starting point");
+        ImGui::Text("for your node graph.");
+        ImGui::Spacing();
+        ImGui::Text("Supported formats include PNG, JPG,");
+        ImGui::Text("and other common image types.");
+        ImGui::Spacing();
+        ImGui::TextDisabled("Tip: Use this node to import");
+        ImGui::TextDisabled("photos or textures for editing.");
+        ImGui::EndPopup();
+    }
+    ImGui::PopStyleVar(2);
 }

@@ -2,7 +2,7 @@
 
 #include "node/NodeBase.hpp"
 
-class MonochromeNode : public NodeBase {
+class RGBNode : public NodeBase {
 private:
 // skip
 
@@ -11,9 +11,9 @@ protected:
     unsigned int GetBorderColor() const override;
 
 public:
-    MonochromeNode();
-    ~MonochromeNode();
-    
+    RGBNode();
+    ~RGBNode();
+
     void Description() override;
     void Process() override;
 };

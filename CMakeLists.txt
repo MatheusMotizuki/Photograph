@@ -72,8 +72,10 @@ add_executable(photoGraph
     src/node/NodeMenu.cpp
     # --
     src/node/submodules/io/Input.cpp
-    src/node/submodules/io/Output.cpp
+    # src/node/submodules/io/Preview.cpp
+    src/node/submodules/io/Download.cpp
     # --
+    src/node/submodules/RGB.cpp
     src/node/submodules/Blur.cpp
     src/node/submodules/Brightness.cpp
     src/node/submodules/Monochrome.cpp
@@ -114,8 +116,6 @@ if(EMSCRIPTEN)
         "-sALLOW_MEMORY_GROWTH=1"
         "-sNO_EXIT_RUNTIME=0"
         "-sASSERTIONS=1"
-        "-sMAX_WEBGL_VERSION=2"
-        "-sMIN_WEBGL_VERSION=2"
         "--shell-file=${CMAKE_CURRENT_SOURCE_DIR}/shell_minimal.html"
     )
     

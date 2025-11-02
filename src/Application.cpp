@@ -1,9 +1,10 @@
 #include "Application.hpp"
 #include <iostream>
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#include <emscripten/html5.h>
+#if defined(__EMSCRIPTEN__)
+#include <GLES3/gl3.h>
+#else
+#include <GL/gl.h>
 #endif
 
 Application::Application(const std::string& title, int width, int height)
@@ -29,11 +30,16 @@ bool Application::initialize()
         return false;
     }
 
-    // OpenGL 3.0 + GLSL 130
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    // Setup SDL with OpenGL ES 3.0 for web, OpenGL 3.3 for desktop
+#ifdef __EMSCRIPTEN__
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#else
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+#endif
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
@@ -73,28 +79,24 @@ bool Application::initialize()
         return false;
     }
 
+    // initialize GUI
+    m_gui = std::make_unique<GUI>(m_window, m_gl_context);
+    if (!m_gui->initialize())
+    {
+        std::cerr << "Error initializing GUI" << std::endl;
+        return false;
+    }
+
     m_running = true;
+    std::cout << "Application initialized successfully!" << std::endl;
     return true;
 }
 
 void Application::run()
 {
 #ifdef __EMSCRIPTEN__
-    // For Emscripten, we need to use emscripten_set_main_loop
-    emscripten_set_main_loop_arg(
-        [](void* arg) {
-            Application* app = static_cast<Application*>(arg);
-            if (!app->processEvents()) {
-                emscripten_cancel_main_loop();
-                return;
-            }
-            app->update();
-            app->render();
-        },
-        this,
-        0,
-        1
-    );
+    // Set up the main loop FIRST, then it will handle timing automatically
+    emscripten_set_main_loop_arg(emscripten_loop, this, 0, 1);
 #else
     while (m_running)
     {
@@ -103,6 +105,19 @@ void Application::run()
         render();
     }
 #endif
+}
+
+void Application::emscripten_loop(void* arg)
+{
+    Application* app = static_cast<Application*>(arg);
+    app->m_running = app->processEvents();
+    if (!app->m_running)
+    {
+        emscripten_cancel_main_loop();
+        return;
+    }
+    app->update();
+    app->render();
 }
 
 bool Application::processEvents()
@@ -124,12 +139,19 @@ bool Application::processEvents()
 
 void Application::update()
 {
-    // Update logic here
+    m_gui->newFrame();
 }
 
 void Application::render()
 {
+    // Clear screen
+    glViewport(0, 0, (int)ImGui::GetIO().DisplaySize.x, (int)ImGui::GetIO().DisplaySize.y);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    // Render GUI
     m_gui->render();
+    
     SDL_GL_SwapWindow(m_window);
 }
 
@@ -137,7 +159,6 @@ void Application::shutdown()
 {
     if (m_gui)
     {
-        m_gui->shutdown();
         m_gui.reset();
     }
     
