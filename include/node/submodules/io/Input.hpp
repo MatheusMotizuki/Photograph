@@ -20,7 +20,7 @@ class InputNode : public NodeBase {
 private:
     unsigned char* m_image_data = nullptr;
     GLuint m_texture = 0;
-    // FilePicker filePicker;
+    FilePicker filePicker;
     int m_tex_w = 0;
     int m_tex_h = 0;
 

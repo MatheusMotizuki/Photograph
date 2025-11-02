@@ -96,7 +96,7 @@ void InputNode::NodeContent() {
     setStyle();
 
     // Display texture if loaded
-    if (m_texture && m_image_data) {
+    if (m_texture && m_image_data && m_tex_w > 0 && m_tex_h > 0) {
         float m_width = 200.f, m_height = 200.f; // cap the image size
         float image_w = (float)m_tex_w, image_h = (float)m_tex_h;
         float scale = 1.0f;
@@ -119,7 +119,7 @@ void InputNode::NodeContent() {
     }
 
     // Button to load image
-    if (ImGui::Button("Load Image", ImVec2(-1, 0))) {
+    if (ImGui::Button("Load Image", ImVec2(200, 20))) {
         #ifdef __EMSCRIPTEN__
             g_current_input_node = this; // Set global pointer for callback
             
@@ -162,14 +162,20 @@ void InputNode::NodeContent() {
             });
         #else
             // Native file loading
-            // std::string filepath = filePicker.OpenFile("Image Files", "*.png;*.jpg;*.jpeg;*.bmp");
-            // if (!filepath.empty()) {
-            //     int width, height, channels;
-            //     unsigned char* data = stbi_load(filepath.c_str(), &width, &height, &channels, 4);
-            //     if (data) {
-            //         LoadImageFromMemory(data, width, height, 4);
-            //     }
-            // }
+            static bool openPicker = false;
+            static int width = 0, height = 0, og_chans = 0;
+
+            if (openPicker) {
+                filePicker.ShowFileDialog(&openPicker);
+
+                if (m_image_data) { stbi_image_free(m_image_data); m_image_data = nullptr; }
+
+                if (filePicker.GetSelectedFile()) m_image_data = stbi_load(filePicker.selected_file, &width, &height, &og_chans, 0);
+
+                // if image data was loaded successfully
+                if (m_image_data)
+                    CreateTextureFromData(m_image_data, width, height, og_chans);
+            }
         #endif
     }
 

@@ -12,7 +12,7 @@ bool DownloadNode::ShouldDisplayText() const { return false; }
 void DownloadNode::NodeContent() {
     setStyle();
 
-    if (ImGui::Button("Download image", ImVec2(200, 30))) { 
+    if (ImGui::Button("Download image", ImVec2(200, 20))) { 
         std::cout << "clicked" << std::endl;
         // TODO: implement this.
     }
