@@ -33,7 +33,7 @@ public:
         if (!*open) return;
 
         if (!io.Fonts->Fonts.empty()) consolas = io.Fonts->Fonts.back();
-        if (consolas) ImGui::PushFont(consolas);
+        // if (consolas) ImGui::PushFont(consolas);
 
         // Modern window styling
         ImGui::SetNextWindowSize(ImVec2(900.0f, 550.0f));
@@ -219,7 +219,7 @@ public:
         if (!can_select) ImGui::EndDisabled();
         ImGui::PopStyleColor(2);
 
-        if (consolas) ImGui::PopFont();
+        // if (consolas) ImGui::PopFont();
         ImGui::PopStyleColor(16);
         ImGui::PopStyleVar(8);
 

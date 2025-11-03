@@ -81,11 +81,11 @@ void DownloadNode::setStyle() {
     ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(80, 255, 180, 255));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.6f);
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[15]);
+    // ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[15]);
 }
 
 void DownloadNode::popStyle() {
-    ImGui::PopFont();
+    // ImGui::PopFont();
     ImGui::PopStyleColor(5);
     ImGui::PopStyleVar(2);
 }
