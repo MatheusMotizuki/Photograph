@@ -24,7 +24,6 @@ void InputNode::NodeContent() {
     setStyle();
 
     static bool openPicker = false;
-    static int width = 0, height = 0, og_chans = 0;
 
     if (openPicker) {
         filePicker.ShowFileDialog(&openPicker);
@@ -32,28 +31,40 @@ void InputNode::NodeContent() {
         if (m_texture) { SDL_DestroyTexture(m_texture); m_texture = nullptr; }
         if (m_image_data) { stbi_image_free(m_image_data); m_image_data = nullptr; }
 
-        if (filePicker.GetSelectedFile()) m_image_data = stbi_load(filePicker.selected_file, &width, &height, &og_chans, 0);
+        if (filePicker.GetSelectedFile()) {
+            int width = 0, height = 0, og_chans = 0;
+            m_image_data = stbi_load(filePicker.selected_file, &width, &height, &og_chans, 0);
 
-        // if image data was loaded successfully
-        if (m_image_data)
-        {
-            SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(
-                (void*)m_image_data, width, height, og_chans * 8, og_chans * width, 
-                0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-            m_texture = SDL_CreateTextureFromSurface(m_renderer, surface);
-            SDL_FreeSurface(surface);
+            // if image data was loaded successfully
+            if (m_image_data)
+            {
+                // Store dimensions for later use
+                m_tex_w = width;
+                m_tex_h = height;
+                
+                SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(
+                    (void*)m_image_data, width, height, og_chans * 8, og_chans * width, 
+                    0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+                m_texture = SDL_CreateTextureFromSurface(m_renderer, surface);
+                SDL_FreeSurface(surface);
+                
+                // Update output_image immediately
+                output_image.width = width;
+                output_image.height = height;
+                output_image.channels = og_chans;
+                output_image.pixels.assign(m_image_data, m_image_data + width * height * og_chans);
+            }
         }
     }
 
     // if we have a texture and image_data
     if (m_texture && m_image_data) {
-        float m_width = 200.f, m_height = 200.f; // cap the image size
-        float image_w = (float)width, image_h = (float)height;
+        float m_width = 200.f, m_height = 200.f;
+        float image_w = (float)m_tex_w, image_h = (float)m_tex_h;
         float scale = 1.0f;
         ImVec2 size;
 
-        if (image_w > m_width)
-        { // simple check to display the image better
+        if (image_w > m_width) {
             scale = m_width / image_w;
             size = ImVec2(m_width, image_h * scale);
         } else if (image_h > m_height) {
@@ -89,8 +100,9 @@ void InputNode::popStyle() {
     ImGui::PopStyleVar(2);
 }
 
-void InputNode::Process() {
-    
+void InputNode::ProcessInternal() {
+    // No need to do anything here since we update output_image in NodeContent
+    // when a new image is loaded
 }
 
 void InputNode::Description() {

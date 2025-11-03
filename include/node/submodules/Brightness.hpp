@@ -4,10 +4,11 @@
 
 class BrightnessNode : public NodeBase {
 private:
-// skip
+    int m_brightness_amount = 50; // 0-100 range, 50 is neutral
 
 protected:
     void NodeContent() override;
+    void ProcessInternal() override;
     unsigned int GetBorderColor() const override;
 
 public:
@@ -15,5 +16,4 @@ public:
     ~BrightnessNode();
 
     void Description() override;
-    void Process() override;
 };

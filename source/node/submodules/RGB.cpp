@@ -8,24 +8,31 @@ unsigned int RGBNode::GetBorderColor() const {
 }
 
 void RGBNode::NodeContent() {
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 12.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 3));
-    // --
+    
+    ImGui::SetNextItemWidth(80);
+    ImGui::SliderInt("R", &m_r, -128, 128, "R %d");
+    ImGui::SetNextItemWidth(80);
+    ImGui::SliderInt("G", &m_g, -128, 128, "G %d");
+    ImGui::SetNextItemWidth(80);
+    ImGui::SliderInt("B", &m_b, -128, 128, "B %d");
     
     ImGui::PopStyleVar(3);
-    
-    static int r = 128, g = 128, b = 128;
-    ImGui::SetNextItemWidth(80);
-    ImGui::SliderInt("R", &r, 0, 255);
-    ImGui::SetNextItemWidth(80);
-    ImGui::SliderInt("G", &g, 0, 255);
-    ImGui::SetNextItemWidth(80);
-    ImGui::SliderInt("B", &b, 0, 255);
 }
 
-void RGBNode::Process() {
+void RGBNode::ProcessInternal() {
+    if (!input_image.isValid()) return;
 
+    output_image = input_image;
+    int channels = output_image.channels;
+    for (int i = 0; i < output_image.width * output_image.height; ++i) {
+        unsigned char* pixel = &output_image.pixels[i * channels];
+        pixel[0] = static_cast<unsigned char>(std::clamp(int(pixel[0]) + m_r, 0, 255));
+        pixel[1] = static_cast<unsigned char>(std::clamp(int(pixel[1]) + m_g, 0, 255));
+        pixel[2] = static_cast<unsigned char>(std::clamp(int(pixel[2]) + m_b, 0, 255));
+    }
 }
 
 void RGBNode::Description() {

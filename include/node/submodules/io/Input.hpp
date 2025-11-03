@@ -31,5 +31,5 @@ public:
     ~InputNode();
 
     void Description() override;
-    void Process() override;
+    void ProcessInternal() override;
 };
