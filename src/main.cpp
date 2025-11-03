@@ -1,19 +1,13 @@
 #include "Application.hpp"
 #include <iostream>
 
-#ifdef EMSCRIPTEN
 #include <emscripten.h>
-#endif
 
 int main(int argc, char* argv[])
 {
     std::cout << "Starting PhotoGraph application..." << std::endl;
-    
-#ifdef EMSCRIPTEN
+
     std::cout << "Running in WebAssembly mode" << std::endl;
-#else
-    std::cout << "Running in native mode" << std::endl;
-#endif
 
     Application app("PhotoGraph", 1280, 720);
     

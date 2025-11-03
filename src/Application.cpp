@@ -1,11 +1,7 @@
 #include "Application.hpp"
 #include <iostream>
 
-#if defined(__EMSCRIPTEN__)
 #include <GLES3/gl3.h>
-#else
-#include <GL/gl.h>
-#endif
 
 Application::Application(const std::string& title, int width, int height)
     : m_title(title)
@@ -31,15 +27,9 @@ bool Application::initialize()
     }
 
     // Setup SDL with OpenGL ES 3.0 for web, OpenGL 3.3 for desktop
-#ifdef __EMSCRIPTEN__
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-#else
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-#endif
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
@@ -94,17 +84,8 @@ bool Application::initialize()
 
 void Application::run()
 {
-#ifdef __EMSCRIPTEN__
     // Set up the main loop FIRST, then it will handle timing automatically
     emscripten_set_main_loop_arg(emscripten_loop, this, 0, 1);
-#else
-    while (m_running)
-    {
-        m_running = processEvents();
-        update();
-        render();
-    }
-#endif
 }
 
 void Application::emscripten_loop(void* arg)

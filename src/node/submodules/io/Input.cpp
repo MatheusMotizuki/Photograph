@@ -1,15 +1,12 @@
 #include "node/submodules/io/Input.hpp"
 
-#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <emscripten/html5.h>
-#endif
 
 // Global pointer to current InputNode instance for callback
 static InputNode* g_current_input_node = nullptr;
 
 // C function that JavaScript can call
-#ifdef __EMSCRIPTEN__
 extern "C" {
     EMSCRIPTEN_KEEPALIVE
     void OnImageLoadedFromJS(uint8_t* data, int len) {
@@ -27,7 +24,6 @@ extern "C" {
         }
     }
 }
-#endif
 
 InputNode::InputNode() 
     : NodeBase("Input Node", PinType::Output, "input_node", false, ImVec4(0.2f, 0.7f, 1.0f, 1.0f))
@@ -121,7 +117,6 @@ void InputNode::NodeContent() {
 
     // Button to load image
     if (ImGui::Button("Load Image", ImVec2(200, 20))) {
-        #ifdef __EMSCRIPTEN__
             g_current_input_node = this; // Set global pointer for callback
             
             // Use EM_JS for cleaner JavaScript integration
@@ -161,23 +156,6 @@ void InputNode::NodeContent() {
                 window.inputNodeFileInput.value = '';
                 window.inputNodeFileInput.click();
             });
-        #else
-            // Native file loading
-            static bool openPicker = false;
-            static int width = 0, height = 0, og_chans = 0;
-
-            if (openPicker) {
-                filePicker.ShowFileDialog(&openPicker);
-
-                if (m_image_data) { stbi_image_free(m_image_data); m_image_data = nullptr; }
-
-                if (filePicker.GetSelectedFile()) m_image_data = stbi_load(filePicker.selected_file, &width, &height, &og_chans, 0);
-
-                // if image data was loaded successfully
-                if (m_image_data)
-                    CreateTextureFromData(m_image_data, width, height, og_chans);
-            }
-        #endif
     }
 
     popStyle();
@@ -192,19 +170,10 @@ void InputNode::setStyle() {
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
     ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(80, 160, 200, 255));
 
-#ifdef __EMSCRIPTEN__
     // Use default font on web
     if (ImGui::GetIO().Fonts->Fonts.Size > 0) {
         ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
     }
-#else
-    // Check if font exists before accessing
-    if (ImGui::GetIO().Fonts->Fonts.Size > 15) {
-        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[15]);
-    } else if (ImGui::GetIO().Fonts->Fonts.Size > 0) {
-        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
-    }
-#endif
 }
 
 void InputNode::popStyle() {

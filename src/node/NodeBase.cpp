@@ -12,16 +12,8 @@ void NodeBase::ResetStyle() { style.PopStyle(); }
 
 ImFont* NodeBase::GetTitleFont() const 
 { 
-  #ifdef __EMSCRIPTEN__
   // Use default font on web
   return ImGui::GetIO().Fonts->Fonts[0];
-#else
-  // Check if font exists before accessing
-  if (ImGui::GetIO().Fonts->Fonts.Size > 15) {
-      return ImGui::GetIO().Fonts->Fonts[15];
-  }
-  return ImGui::GetIO().Fonts->Fonts[0]; // Fallback to default
-#endif
 }
 
 unsigned int NodeBase::GetBorderColor() const { return IM_COL32(58, 58, 58, 255); }
@@ -58,11 +50,7 @@ void NodeBase::Draw() {
   ImNodes::BeginNode(n_id);
   
   ImNodes::BeginNodeTitleBar();
-#ifdef __EMSCRIPTEN__
   ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
-#else
-  ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[18]);
-#endif
   ImGui::TextColored(n_title_col, "%s", n_title.c_str());
   ImGui::PopFont();
   ImGui::SameLine();

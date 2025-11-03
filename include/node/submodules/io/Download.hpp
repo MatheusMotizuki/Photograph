@@ -2,9 +2,7 @@
 
 #include "node/NodeBase.hpp"
 
-#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
-#endif
 
 class DownloadNode : public NodeBase{
 private:

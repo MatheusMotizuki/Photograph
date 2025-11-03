@@ -1,3 +1,5 @@
 build
 build-web
 build-web-2
+purge.sh
+backup_emscripten_ifdefs_1762187719

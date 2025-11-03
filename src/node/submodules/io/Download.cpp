@@ -88,7 +88,6 @@ void DownloadNode::NodeContent() {
     
     if (ImGui::Button("Download image", ImVec2(200, 30))) { 
         if (has_valid_input) {
-            #ifdef __EMSCRIPTEN__
                 // Browser-based download using JavaScript
                 // First, encode the image to PNG in memory
                 int png_size = 0;
@@ -128,23 +127,6 @@ void DownloadNode::NodeContent() {
                 } else {
                     std::cerr << "Failed to encode image to PNG." << std::endl;
                 }
-            #else
-                // Native file download
-                std::string filename = "output_image.png";
-                int success = stbi_write_png(
-                    filename.c_str(),
-                    input_image.width,
-                    input_image.height,
-                    input_image.channels,
-                    input_image.pixels.data(),
-                    input_image.width * input_image.channels
-                );
-                if (success) {
-                    std::cout << "Image saved to " << filename << std::endl;
-                } else {
-                    std::cerr << "Failed to save image." << std::endl;
-                }
-            #endif
         }
     }
     
@@ -167,15 +149,7 @@ void DownloadNode::setStyle() {
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
     ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(80, 255, 180, 255));
     
-#ifdef __EMSCRIPTEN__
     ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
-#else
-    if (ImGui::GetIO().Fonts->Fonts.Size > 15) {
-        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[15]);
-    } else {
-        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
-    }
-#endif
 }
 
 void DownloadNode::popStyle() {

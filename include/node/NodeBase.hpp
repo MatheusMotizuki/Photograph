@@ -4,12 +4,7 @@
 #include "imnodes.h"
 #include "style.hpp"
 
-#ifdef __EMSCRIPTEN__
 #include <GLES3/gl3.h>
-#else
-#include <GL/glew.h>
-#include <GL/gl.h>
-#endif
 
 #include <memory>
 #include <vector>

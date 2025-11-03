@@ -22,7 +22,6 @@ bool GUI::initialize()
     ImNodes::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-#ifdef __EMSCRIPTEN__
     io.IniFilename = nullptr;
     
     // Load fonts from preloaded virtual filesystem
@@ -36,34 +35,13 @@ bool GUI::initialize()
         // Load all your other fonts here
         io.Fonts->AddFontFromFileTTF("/assets/fonts/inter/Inter_18pt-Bold.ttf", 18.0f);
         io.Fonts->AddFontFromFileTTF("/assets/fonts/inter/Inter_18pt-ExtraBold.ttf", 18.0f);
-        // ... etc
     }
-#else
-    io.IniFilename = "imgui.ini";
-    
-    // Native build - load from actual filesystem
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Black.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Bold.ttf", 18.0f);
-    // ... etc
-#endif
 
     ImGui::StyleColorsDark();
 
     ImGui_ImplSDL2_InitForOpenGL(m_window, m_gl_context);
     
-#ifdef __EMSCRIPTEN__
     ImGui_ImplOpenGL3_Init("#version 300 es");
-#else
-    ImGui_ImplOpenGL3_Init("#version 330");
-#endif
-
-#ifndef __EMSCRIPTEN__
-    SDL_SetWindowMinimumSize(SDL_GL_GetCurrentWindow(), 640, 480);
-    SDL_SetWindowSize(SDL_GL_GetCurrentWindow(), 1280, 720);
-    SDL_SetWindowPosition(SDL_GL_GetCurrentWindow(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-    SDL_SetWindowResizable(SDL_GL_GetCurrentWindow(), SDL_TRUE);
-    SDL_SetWindowMaximumSize(SDL_GL_GetCurrentWindow(), 1920, 1080);
-#endif
 
     n_nodes.push_back(std::make_unique<InputNode>());
     n_nodes.push_back(std::make_unique<DownloadNode>());
@@ -127,12 +105,8 @@ void GUI::newFrame()
         ImGuiWindowFlags_NoDecoration
     );
     GUI::setStyle();
-    #ifdef __EMSCRIPTEN__
-        // Use default font for web build
-        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
-    #else
-        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[18]); // Setup default font
-    #endif
+    // Use default font for web build
+    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
     ImNodes::BeginNodeEditor();
 
     // ========== Node Menu ==========
