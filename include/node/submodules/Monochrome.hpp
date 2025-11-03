@@ -8,6 +8,7 @@ private:
 
 protected:
     void NodeContent() override;
+    void ProcessInternal() override;
     unsigned int GetBorderColor() const override;
 
 public:
@@ -15,5 +16,4 @@ public:
     ~MonochromeNode();
     
     void Description() override;
-    void Process() override;
 };

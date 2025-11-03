@@ -32,5 +32,6 @@ public:
     ~PreviewNode();
 
     void Description() override;
-    void Process() override;
+    void ProcessInternal() override;
+    void ClearPreview();
 };

@@ -1,6 +1,8 @@
 #include "node/submodules/Brightness.hpp"
 
-BrightnessNode::BrightnessNode() : NodeBase("Brightness Node", PinType::Both, "brightness_node", true, ImVec4(0.6f, 0.4f, 0.9f, 1.0f)) { }
+BrightnessNode::BrightnessNode() : NodeBase("Brightness Node", PinType::Both, "brightness_node", true, ImVec4(0.6f, 0.4f, 0.9f, 1.0f)) {
+    SetProcessDelay(150.0f); // 150ms delay for brightness
+}
 BrightnessNode::~BrightnessNode() {}
 
 unsigned int BrightnessNode::GetBorderColor() const {
@@ -8,8 +10,6 @@ unsigned int BrightnessNode::GetBorderColor() const {
 }
 
 void BrightnessNode::NodeContent() {
-    static int brightnessAmount = 0;
-
     ImVec4 nodeColor = ImVec4(0.6f, 0.4f, 0.9f, 1.0f);
 
     ImGui::PushStyleColor(ImGuiCol_FrameBg,             ImVec4(nodeColor.x, nodeColor.y, nodeColor.z, 0.15f));
@@ -19,14 +19,32 @@ void BrightnessNode::NodeContent() {
     ImGui::PushStyleColor(ImGuiCol_SliderGrabActive,    ImVec4(nodeColor.x, nodeColor.y, nodeColor.z, 1.0f));
 
     ImGui::PushItemWidth(150);
-    ImGui::SliderInt("##brightness_amount", &brightnessAmount, 0, 100, "Amount: %d");
+    int prev_brightness = m_brightness_amount;
+    ImGui::SliderInt("##brightness_amount", &m_brightness_amount, 0, 100, "Amount: %d");
     ImGui::PopItemWidth();
 
     ImGui::PopStyleColor(5);
+    
+    // Only mark for reprocess if value changed
+    if (prev_brightness != m_brightness_amount) {
+        MarkNeedsReprocess();
+    }
 }
 
-void BrightnessNode::Process() {
+void BrightnessNode::ProcessInternal() {
+    if (!input_image.isValid()) return;
     
+    output_image = input_image;
+    
+    // Map 0-100 to -127 to +127
+    float brightness = (m_brightness_amount - 50) * 2.55f;
+    
+    // Optimized processing
+    size_t pixel_count = output_image.pixels.size();
+    for (size_t i = 0; i < pixel_count; ++i) {
+        int val = static_cast<int>(output_image.pixels[i]) + static_cast<int>(brightness);
+        output_image.pixels[i] = static_cast<unsigned char>(std::clamp(val, 0, 255));
+    }
 }
 
 void BrightnessNode::Description() {

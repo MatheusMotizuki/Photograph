@@ -15,8 +15,15 @@ void MonochromeNode::NodeContent() {
     ImGui::PopStyleVar(3);
 }
 
-void MonochromeNode::Process() {
-    
+void MonochromeNode::ProcessInternal() {
+    if (!input_image.isValid()) return;
+    output_image = input_image;
+    for (int i = 0; i < output_image.width * output_image.height; ++i) {
+        unsigned char* pixel = &output_image.pixels[i * output_image.channels];
+        unsigned char gray = static_cast<unsigned char>(
+            0.299f * pixel[0] + 0.587f * pixel[1] + 0.114f * pixel[2]);
+        pixel[0] = pixel[1] = pixel[2] = gray;
+    }
 }
 
 void MonochromeNode::Description() {
