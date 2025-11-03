@@ -56,11 +56,11 @@ void PreviewNode::setStyle() {
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.6f);
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
     ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(80, 255, 180, 255));
-    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[15]);
+    // ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[15]);
 }
 
 void PreviewNode::popStyle() {
-    ImGui::PopFont();
+    // ImGui::PopFont();
     ImGui::PopStyleColor(2);
     ImGui::PopStyleVar(2);
 }

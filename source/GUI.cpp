@@ -3,6 +3,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#include <random>
+#include <string>
+
+// function prototypes
+std::string generate_unique_code();
+
 GUI::GUI(SDL_Window* window, SDL_Renderer* renderer)
     : m_window(window)
     , m_renderer(renderer)
@@ -38,27 +44,27 @@ bool GUI::initialize()
     // io.Fonts->AddFontFromFileTTF("assets/fonts/montserrat/Montserrat-Thin.ttf", 18.0f);
 
     // inter
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Black.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-BlackItalic.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Bold.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-BoldItalic.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-ExtraBold.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-ExtraBoldItalic.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-ExtraLight.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-ExtraLightItalic.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Italic.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Light.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-LightItalic.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Medium.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-MediumItalic.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Regular.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-SemiBold.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-SemiBoldItalic.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Thin.ttf", 18.0f);
-    io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-ThinItalic.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Black.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-BlackItalic.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Bold.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-BoldItalic.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-ExtraBold.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-ExtraBoldItalic.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-ExtraLight.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-ExtraLightItalic.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Italic.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Light.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-LightItalic.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Medium.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-MediumItalic.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Regular.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-SemiBold.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-SemiBoldItalic.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-Thin.ttf", 18.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/inter/Inter_18pt-ThinItalic.ttf", 18.0f);
 
     // consolas
-    io.Fonts->AddFontFromFileTTF("assets/fonts/consolas/Inconsolata-Regular.ttf", 16.0f);
+    // io.Fonts->AddFontFromFileTTF("assets/fonts/consolas/Inconsolata-Regular.ttf", 16.0f);
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -127,11 +133,112 @@ void GUI::popStyle()
     ImNodes::PopColorStyle(); // BoxSelectorOutline
 }
 
+void initialOption()
+{
+    static bool first_frame = true;
+    static int session_state = 0; // 0 = menu, 1 = show code, 2 = joining
+    static std::string gen_code = "";
+    const char* welcome_message = "Welcome to photoGraph";
+
+    if (first_frame)
+    {
+        ImGui::OpenPopup(welcome_message);
+        first_frame = false;
+    }
+
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20, 20));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 12));
+
+    if (ImGui::BeginPopupModal(welcome_message, NULL, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        // State 0: Initial Menu
+        if (session_state == 0)
+        {
+            ImGui::Text("Choose an option:");
+            ImGui::Spacing();
+
+            if (ImGui::Button("New Project", ImVec2(250, 40)))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+
+            if (ImGui::Button("New Session", ImVec2(250, 40)))
+            {
+                gen_code = generate_unique_code();
+                session_state = 1;
+            }
+
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            static char session_code[64] = "";
+            ImGui::SetNextItemWidth(250);
+            ImGui::InputTextWithHint("##session_code", "Enter Session Code", session_code, IM_ARRAYSIZE(session_code));
+
+            bool has_text = session_code[0] != '\0';
+            ImGui::BeginDisabled(!has_text);
+            if (ImGui::Button("Join Session", ImVec2(250, 40)))
+            {
+                std::cout << "Joining session: " << session_code << std::endl;
+                // TODO: Start WebSocket client here
+                // JoinWebSocketServer(session_code);
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndDisabled();
+        }
+        // State 1: Show Generated Code
+        else if (session_state == 1)
+        {
+            ImGui::Text("Your session code:");
+            ImGui::Spacing();
+            
+            ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]); // Use default font or monospace if available
+            ImGui::SetNextItemWidth(250);
+            ImGui::InputText("##gen_code", gen_code.data(), gen_code.size(), ImGuiInputTextFlags_ReadOnly);
+            ImGui::PopFont();
+
+            ImGui::Spacing();
+            
+            if (ImGui::Button("Copy to Clipboard", ImVec2(250, 40)))
+            {
+                ImGui::SetClipboardText(gen_code.c_str());
+            }
+
+            if (ImGui::Button("Start Session", ImVec2(250, 40)))
+            {
+                std::cout << "Starting session with code: " << gen_code << std::endl;
+                // TODO: Start WebSocket server here
+                // CreateWebSocketServer(gen_code);
+                ImGui::CloseCurrentPopup();
+                session_state = 0; // Reset for next time
+            }
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            if (ImGui::Button("Back", ImVec2(250, 30)))
+            {
+                session_state = 0;
+            }
+        }
+
+        ImGui::EndPopup();
+    }
+
+    ImGui::PopStyleVar(2);
+}
+
 void GUI::newFrame()
 {
     ImGui_ImplSDLRenderer2_NewFrame();
     ImGui_ImplSDL2_NewFrame();
-    ImGui::NewFrame();    
+    ImGui::NewFrame();
+
+    initialOption();
 
     // Dockspace setup
     ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -148,7 +255,7 @@ void GUI::newFrame()
     );
     
     GUI::setStyle();
-    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[18]);
+    // ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[18]);
     ImNodes::BeginNodeEditor();
     
     // ========== Node Menu ==========
@@ -224,7 +331,7 @@ void GUI::newFrame()
                 [input_id](const Link& link) { return link.end_attr == input_id; }
             );
             if (already_connected) {
-                ImGui::PopFont();
+                // ImGui::PopFont();
                 GUI::popStyle();
                 ImGui::End();
                 return;
@@ -366,7 +473,7 @@ void GUI::newFrame()
     }
 
     // ========== Cleanup ==========
-    ImGui::PopFont();
+    // ImGui::PopFont();
     GUI::popStyle();
     ImGui::End();
 }
@@ -397,4 +504,28 @@ inline void GUI::certainDeathLink(std::vector<Link>& n_links, std::unordered_set
             return death_link.count(link.id) > 0;
         }),
     n_links.end());
+}
+
+std::string generate_unique_code() {
+    static const char chars[] = "abcdefghijklmnopqrstuvwxyz0123456789";
+    static std::mt19937_64 rng((std::random_device())());
+    std::uniform_int_distribution<std::size_t> dist(0, sizeof(chars) - 2);
+
+    auto gen_part = [&](int len) {
+        std::string s;
+        s.reserve(len);
+        for (int i = 0; i < len; ++i) s += chars[dist(rng)];
+        return s;
+    };
+
+    // 4 chars, dash, 5 chars (e.g. "a764-bhsk8")
+    return gen_part(4) + "-" + gen_part(5);
+}
+
+void CreateWebSocketServer(){
+
+}
+
+void JoinWebSocketServer() {
+
 }

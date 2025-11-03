@@ -46,9 +46,9 @@ void NodeBase::Draw() {
   ImNodes::BeginNode(n_id);
 
   ImNodes::BeginNodeTitleBar();
-  ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[18]);
+  // ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[18]);
   ImGui::TextColored(n_title_col, "%s", n_title.c_str());
-  ImGui::PopFont();
+  // ImGui::PopFont();
   ImGui::SameLine();
   ImNodes::EndNodeTitleBar();
 
