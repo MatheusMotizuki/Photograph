@@ -4,10 +4,11 @@
 
 class RGBNode : public NodeBase {
 private:
-// skip
+    int m_r = 0, m_g = 0, m_b = 0;
 
 protected:
     void NodeContent() override;
+    void ProcessInternal() override;
     unsigned int GetBorderColor() const override;
 
 public:
@@ -15,5 +16,4 @@ public:
     ~RGBNode();
 
     void Description() override;
-    void Process() override;
 };

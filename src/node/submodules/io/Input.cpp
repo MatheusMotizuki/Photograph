@@ -87,6 +87,7 @@ void InputNode::LoadImageFromMemory(unsigned char* data, int width, int height, 
     }
     m_image_data = data;
     CreateTextureFromData(data, width, height, channels);
+    ProcessInternal();
 }
 
 bool InputNode::ShouldDisplayText() const { return false; }
@@ -212,8 +213,19 @@ void InputNode::popStyle() {
     ImGui::PopStyleVar(2);
 }
 
-void InputNode::Process() {
+void InputNode::ProcessInternal() {
+    if (!m_image_data || m_tex_w == 0 || m_tex_h == 0) {
+        output_image = ImageData();
+        return;
+    }
     
+    // Fill output_image for the dataflow
+    output_image.width = m_tex_w;
+    output_image.height = m_tex_h;
+    output_image.channels = 4; // We always load as RGBA
+    
+    size_t data_size = m_tex_w * m_tex_h * 4;
+    output_image.pixels.assign(m_image_data, m_image_data + data_size);
 }
 
 void InputNode::Description() {

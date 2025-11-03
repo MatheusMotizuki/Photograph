@@ -72,7 +72,7 @@ add_executable(photoGraph
     src/node/NodeMenu.cpp
     # --
     src/node/submodules/io/Input.cpp
-    # src/node/submodules/io/Preview.cpp
+    src/node/submodules/io/Preview.cpp
     src/node/submodules/io/Download.cpp
     # --
     src/node/submodules/RGB.cpp

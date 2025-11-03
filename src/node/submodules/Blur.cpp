@@ -1,6 +1,8 @@
 #include "node/submodules/Blur.hpp"
 
-BlurNode::BlurNode() : NodeBase("Blur Node", PinType::Both, "blur_node", true, ImVec4(1.0f, 0.37f, 0.0f, 1.0f)) {}
+BlurNode::BlurNode() : NodeBase("Blur Node", PinType::Both, "blur_node", true, ImVec4(1.0f, 0.37f, 0.0f, 1.0f)) {
+    SetProcessDelay(300.0f); // 300ms delay for blur (it's expensive)
+}
 BlurNode::~BlurNode() {}
 
 unsigned int BlurNode::GetBorderColor() const {
@@ -8,25 +10,26 @@ unsigned int BlurNode::GetBorderColor() const {
 }
 
 void BlurNode::NodeContent() {
-    static int blurAmount = 0;
-
-    // Placeholder combo options
     static const char* blurTypes[] = { "Gaussian", "Box", "Median" };
-    static int currentBlurType = 0;
 
     setStyleCombo();
     ImGui::PushItemWidth(150);
-    ImGui::Combo("Blur Type", &currentBlurType, blurTypes, IM_ARRAYSIZE(blurTypes));
+    int prev_blur_type = m_blur_type;
+    ImGui::Combo("Blur Type", &m_blur_type, blurTypes, IM_ARRAYSIZE(blurTypes));
     ImGui::PopItemWidth();
     popStyleCombo();
 
     setStyleSlider();
-    
     ImGui::PushItemWidth(150);
-    ImGui::SliderInt("##blur_amount", &blurAmount, 0, 100, "Amount: %d");
+    int prev_blur_amount = m_blur_amount;
+    ImGui::SliderInt("##blur_amount", &m_blur_amount, 0, 100, "Amount: %d");
     ImGui::PopItemWidth();
-
     popStyleSlider();
+    
+    // Only mark for reprocess if values changed
+    if (prev_blur_amount != m_blur_amount || prev_blur_type != m_blur_type) {
+        MarkNeedsReprocess();
+    }
 }
 
 void BlurNode::setStyleCombo() {
@@ -57,8 +60,57 @@ void BlurNode::popStyleSlider() {
     ImGui::PopStyleColor(5);
 }
 
-void BlurNode::Process() {
+void BlurNode::ProcessInternal() {
+    if (!input_image.isValid() || m_blur_amount == 0) {
+        output_image = input_image;
+        return;
+    }
     
+    output_image = input_image;
+    
+    int radius = std::max(1, m_blur_amount / 5);
+    int width = output_image.width;
+    int height = output_image.height;
+    int channels = output_image.channels;
+    
+    // Process only RGB channels (skip alpha at index 3)
+    int process_channels = std::min(3, channels);
+    
+    // For each channel (excluding alpha), compute integral image and apply box filter
+    for (int c = 0; c < process_channels; ++c) {
+        // Build integral image for this channel
+        std::vector<int> integral((width + 1) * (height + 1), 0);
+        
+        for (int y = 1; y <= height; ++y) {
+            for (int x = 1; x <= width; ++x) {
+                int pixel_val = input_image.pixels[((y-1) * width + (x-1)) * channels + c];
+                integral[y * (width + 1) + x] = pixel_val +
+                    integral[(y-1) * (width + 1) + x] +
+                    integral[y * (width + 1) + (x-1)] -
+                    integral[(y-1) * (width + 1) + (x-1)];
+            }
+        }
+        
+        // Apply box filter using integral image (O(1) per pixel!)
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                int y1 = std::max(0, y - radius);
+                int y2 = std::min(height - 1, y + radius);
+                int x1 = std::max(0, x - radius);
+                int x2 = std::min(width - 1, x + radius);
+                
+                // Convert to integral image coordinates (1-indexed)
+                int sum = integral[(y2 + 1) * (width + 1) + (x2 + 1)] -
+                          integral[y1 * (width + 1) + (x2 + 1)] -
+                          integral[(y2 + 1) * (width + 1) + x1] +
+                          integral[y1 * (width + 1) + x1];
+                
+                int count = (y2 - y1 + 1) * (x2 - x1 + 1);
+                output_image.pixels[(y * width + x) * channels + c] = sum / count;
+            }
+        }
+    }
+    // Alpha channel (if exists) remains unchanged
 }
 
 void BlurNode::Description() {

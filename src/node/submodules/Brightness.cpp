@@ -1,6 +1,8 @@
 #include "node/submodules/Brightness.hpp"
 
-BrightnessNode::BrightnessNode() : NodeBase("Brightness Node", PinType::Both, "brightness_node", true, ImVec4(0.6f, 0.4f, 0.9f, 1.0f)) { }
+BrightnessNode::BrightnessNode() : NodeBase("Brightness Node", PinType::Both, "brightness_node", true, ImVec4(0.6f, 0.4f, 0.9f, 1.0f)) {
+    SetProcessDelay(150.0f); // 150ms delay for brightness
+}
 BrightnessNode::~BrightnessNode() {}
 
 unsigned int BrightnessNode::GetBorderColor() const {
@@ -8,8 +10,6 @@ unsigned int BrightnessNode::GetBorderColor() const {
 }
 
 void BrightnessNode::NodeContent() {
-    static int brightnessAmount = 0;
-
     ImVec4 nodeColor = ImVec4(0.6f, 0.4f, 0.9f, 1.0f);
 
     ImGui::PushStyleColor(ImGuiCol_FrameBg,             ImVec4(nodeColor.x, nodeColor.y, nodeColor.z, 0.15f));
@@ -19,14 +19,37 @@ void BrightnessNode::NodeContent() {
     ImGui::PushStyleColor(ImGuiCol_SliderGrabActive,    ImVec4(nodeColor.x, nodeColor.y, nodeColor.z, 1.0f));
 
     ImGui::PushItemWidth(150);
-    ImGui::SliderInt("##brightness_amount", &brightnessAmount, 0, 100, "Amount: %d");
+    int prev_brightness = m_brightness_amount;
+    ImGui::SliderInt("Brightness", &m_brightness_amount, 0, 100, "Amount: %d");
     ImGui::PopItemWidth();
 
     ImGui::PopStyleColor(5);
+    
+    if (prev_brightness != m_brightness_amount) {
+        MarkNeedsReprocess();
+    }
 }
 
-void BrightnessNode::Process() {
+void BrightnessNode::ProcessInternal() {
+    if (!input_image.isValid() || input_image.pixels.empty()) {
+        output_image = ImageData(); // Clear output if no input
+        return;
+    }
     
+    output_image = input_image;
+    
+    int brightness = static_cast<int>((m_brightness_amount - 50) * 2.55f);
+    int channels = output_image.channels;
+    size_t pixel_count = output_image.width * output_image.height;
+    
+    for (size_t i = 0; i < pixel_count; ++i) {
+        unsigned char* pixel = &output_image.pixels[i * channels];
+        for (int c = 0; c < std::min(3, channels); ++c) {
+            int val = static_cast<int>(pixel[c]) + brightness;
+            pixel[c] = static_cast<unsigned char>(std::clamp(val, 0, 255));
+        }
+        // Alpha channel remains unchanged
+    }
 }
 
 void BrightnessNode::Description() {

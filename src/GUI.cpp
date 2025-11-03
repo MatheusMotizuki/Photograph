@@ -135,8 +135,11 @@ void GUI::newFrame()
     #endif
     ImNodes::BeginNodeEditor();
 
+    // ========== Node Menu ==========
     const bool open_menu = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
-        ImNodes::IsEditorHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right, false) && selected_nodes.empty();
+        ImNodes::IsEditorHovered() && 
+        ImGui::IsMouseClicked(ImGuiMouseButton_Right, false) && 
+        selected_nodes.empty();
 
     if (open_menu) ImGui::OpenPopup("add node");
 
@@ -149,13 +152,13 @@ void GUI::newFrame()
         }
     }
 
-    // clear both before checking
+    // ========== Draw Nodes ==========
     selected_nodes.clear();
     selected_links.clear();
 
     for (const auto& node : n_nodes) {
         node->Draw();
-        int nodeID = node->GetId();
+
         bool selected = ImNodes::IsNodeSelected(node->GetId());
         if (selected) {
             selected_nodes.insert(node->GetId());
@@ -163,9 +166,11 @@ void GUI::newFrame()
                 ImGui::OpenPopup((node->GetInternalTitle() + "_" + std::to_string(node->GetId())).c_str());
             }
         }
+
         node->Description();
     }
 
+    // ========== Draw Links ==========
     for (const Link& link : n_links) {
         ImNodes::Link(link.id, link.init_attr, link.end_attr);
 
@@ -174,32 +179,25 @@ void GUI::newFrame()
         }
     }
 
-    // delete selected nodes and links
-    if (ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
-        for (int id : selected_nodes) {
-            death_node.insert(id);
-        }
-
-        for (int id : selected_links) {
-            death_link.insert(id);
-        }
-    }
-
-    if (!death_node.empty() && 
-        ImGui::IsKeyPressed(ImGuiKey_Delete, false)
-    ) { certainDeathNode(n_nodes, death_node); death_node.clear(); }
-
-    // TODO: check if the node attached to this link
-    // was delete, if so delete this link also.
-    if (!death_link.empty() && 
-        ImGui::IsKeyPressed(ImGuiKey_Delete, false)
-    ) { certainDeathLink(n_links, death_link); death_link.clear(); }
-
+    // ========== Minimap & End Editor ==========
     ImNodes::MiniMap(0.2f, ImNodesMiniMapLocation_BottomRight);
     ImNodes::EndNodeEditor();
 
+    // ========== IMPORTANT: Handle Link Creation/Destruction AFTER EndNodeEditor() ==========
+
+    // Helper Lambda
+    auto findNodeByAttr = [&](int attr_id) -> NodeBase* {
+        for (auto& node : n_nodes) {
+            if (node->GetOutputId() == attr_id || node->GetInputId() == attr_id)
+                return node.get();
+        }
+        return nullptr;
+    };
+
+    // Handle Link Creation
     int start_attr, end_attr;
-    if (ImNodes::IsLinkCreated(&start_attr, &end_attr)) {
+    bool snap_create = true;
+    if (ImNodes::IsLinkCreated(&start_attr, &end_attr, &snap_create)) {
         Link link;
         link.id = Link::link_next_id++;
         link.init_attr = start_attr;
@@ -207,15 +205,104 @@ void GUI::newFrame()
         n_links.push_back(link);
     }
 
+    // TODO: make this work, somehow
+    // int dropped_attr;
+    // if (ImNodes::IsLinkDropped(&dropped_attr)) {
+    //     // Find the link that was dropped
+    //     auto link_it = std::find_if(n_links.begin(), n_links.end(),
+    //         [dropped_attr](const Link& link) {
+    //             return link.end_attr == dropped_attr;
+    //         });
+
+    //     if (link_it != n_links.end()) {
+    //         // Try to clear preview if the destination node is DownloadNode or PreviewNode
+    //         NodeBase* dst = findNodeByAttr(link_it->end_attr);
+    //         if (dst) {
+    //             if (auto* downloadNode = dynamic_cast<DownloadNode*>(dst)) {
+    //                 downloadNode->ClearPreview();
+    //             }
+    //             else if (auto* previewNode = dynamic_cast<PreviewNode*>(dst)) {
+    //                 previewNode->ClearPreview();
+    //             }
+    //         }
+    //     }
+    // }
+
+    // Handle Link Destruction
     int link_id;
     if (ImNodes::IsLinkDestroyed(&link_id)) {
+        // Remove the destroyed link
         n_links.erase(
             std::remove_if(n_links.begin(), n_links.end(),
-            [link_id](const Link& link) { return link.id == link_id; }),
+                [link_id](const Link& link) { return link.id == link_id; }),
             n_links.end()
         );
     }
 
+    // ========== Process Nodes (Dataflow) ==========
+    // First pass: process all nodes with their current input
+    for (auto& node : n_nodes) {
+        node->Process();
+    }
+
+    // Second pass: propagate data through links
+    for (const Link& link : n_links) {
+        NodeBase* src = findNodeByAttr(link.init_attr);
+        NodeBase* dst = findNodeByAttr(link.end_attr);
+        if (src && dst) {
+            dst->input_image = src->output_image;
+            dst->Process();
+        }
+    }
+
+    // ========== Handle Node/Link Deletion ==========
+    if (ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
+        // Mark selected nodes for deletion
+        for (int node_id : selected_nodes) {
+            death_node.insert(node_id);
+        }
+
+        // Mark selected links for deletion
+        for (int link_id : selected_links) {
+            death_link.insert(link_id);
+        }
+    }
+
+    // Delete nodes and their connected links
+    if (!death_node.empty()) {
+        // First, find all links connected to nodes being deleted
+        for (int node_id : death_node) {
+            // Find the node to get its input/output IDs
+            auto node_it = std::find_if(n_nodes.begin(), n_nodes.end(),
+                [node_id](const std::unique_ptr<NodeBase>& node) {
+                    return node->GetId() == node_id;
+                });
+            
+            if (node_it != n_nodes.end()) {
+                int input_id = (*node_it)->GetInputId();
+                int output_id = (*node_it)->GetOutputId();
+                
+                // Mark all links connected to this node for deletion
+                for (const Link& link : n_links) {
+                    if (link.init_attr == output_id || link.end_attr == input_id) {
+                        death_link.insert(link.id);
+                    }
+                }
+            }
+        }
+        
+        // Delete the nodes
+        certainDeathNode(n_nodes, death_node);
+        death_node.clear();
+    }
+
+    // Delete links
+    if (!death_link.empty()) {
+        certainDeathLink(n_links, death_link);
+        death_link.clear();
+    }
+
+    // ========== Cleanup ==========
     ImGui::PopFont();
     GUI::popStyle();
     ImGui::End();
@@ -230,12 +317,13 @@ void GUI::render()
 
 inline void GUI::certainDeathNode(std::vector<std::unique_ptr<NodeBase>>& n_nodes, const std::unordered_set<int>& death_node) {
     n_nodes.erase(
-    std::remove_if(n_nodes.begin(), n_nodes.end(),
-        [&death_node](const std::unique_ptr<NodeBase>& node){
-            if (!node->IsProtected()) return false; // do not remove if protected
-            return death_node.count(node->GetId()) > 0;
-        }),
-    n_nodes.end());
+        std::remove_if(n_nodes.begin(), n_nodes.end(),
+            [&death_node](const std::unique_ptr<NodeBase>& node){
+                // Only remove if node is marked for deletion AND is deletable
+                return death_node.count(node->GetId()) > 0 && node->IsDeletable();
+            }),
+        n_nodes.end()
+    );
 }
 
 inline void GUI::certainDeathLink(std::vector<Link>& n_links, std::unordered_set<int>& death_link){

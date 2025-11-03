@@ -56,6 +56,7 @@ void NodeBase::Draw() {
   SetNodeStyle(GetBorderColor());
 
   ImNodes::BeginNode(n_id);
+  
   ImNodes::BeginNodeTitleBar();
 #ifdef __EMSCRIPTEN__
   ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);

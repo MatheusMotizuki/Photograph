@@ -14,7 +14,6 @@ unsigned int MonochromeNode::GetBorderColor() const {
 }
 
 void MonochromeNode::NodeContent() {
-    std::cout << "inside node content" << std::endl;
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 12.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 3));
@@ -22,8 +21,23 @@ void MonochromeNode::NodeContent() {
     ImGui::PopStyleVar(3);
 }
 
-void MonochromeNode::Process() {
+void MonochromeNode::ProcessInternal() {
+    if (!input_image.isValid()) return;
     
+    output_image = input_image;
+    int channels = output_image.channels;
+    
+    for (int i = 0; i < output_image.width * output_image.height; ++i) {
+        unsigned char* pixel = &output_image.pixels[i * channels];
+        
+        // Calculate grayscale value using luminance formula
+        unsigned char gray = static_cast<unsigned char>(
+            0.299f * pixel[0] + 0.587f * pixel[1] + 0.114f * pixel[2]);
+        
+        // Set RGB channels to gray value
+        pixel[0] = pixel[1] = pixel[2] = gray;
+        // Keep alpha channel unchanged if it exists (pixel[3])
+    }
 }
 
 void MonochromeNode::Description() {

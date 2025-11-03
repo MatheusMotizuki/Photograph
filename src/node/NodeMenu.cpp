@@ -52,8 +52,8 @@ std::unique_ptr<NodeBase> NodeMenu::CreateNode(NodeType type) {
         return std::make_unique<BlurNode>();
     case NodeType::RGBNode:
         return std::make_unique<RGBNode>();
-    // case NodeType::PreviewNode:
-    //     return std::make_unique<PreviewNode>();
+    case NodeType::PreviewNode:
+        return std::make_unique<PreviewNode>();
     default:
         return nullptr;
     }

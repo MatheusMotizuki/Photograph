@@ -24,15 +24,15 @@ protected:
     void popStyle();
     void setStyle();
 
-    void Process() override;
     bool CreateTextureFromData(unsigned char* data, int width, int height, int channels);
 
 public:
     InputNode();
     ~InputNode();
     
-    void Description() override;
-    
     // Public method for loading image from memory (called from JS callback)
     void LoadImageFromMemory(unsigned char* data, int width, int height, int channels);
+
+    void Description() override;
+    void ProcessInternal() override;
 };
