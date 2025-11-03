@@ -1,4 +1,4 @@
-### build command for was
+### build command for wasm
 
 ```sh
 emcmake cmake -G Ninja -B build-web

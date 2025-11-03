@@ -7,12 +7,6 @@
 #include <string>
 #include <iostream>
 
-#ifdef __EMSCRIPTEN__
-#include <GLES3/gl3.h>
-#else
-#include <GL/gl.h>
-#endif
-
 #include "stb_image.h"
 #include "FilePicker.h"
 
