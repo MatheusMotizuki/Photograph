@@ -281,6 +281,32 @@ void GUI::newFrame()
         death_link.clear();
     }
 
+    // === After deletion, update preview/download nodes if disconnected ===
+    for (auto& node : n_nodes) {
+        bool is_preview = dynamic_cast<PreviewNode*>(node.get());
+        bool is_download = dynamic_cast<DownloadNode*>(node.get());
+        if (is_preview || is_download) {
+            int input_id = node->GetInputId();
+            // Check if any link connects to this node's input
+            bool connected = std::any_of(n_links.begin(), n_links.end(),
+                [input_id](const Link& link) { return link.end_attr == input_id; });
+            if (!connected) {
+                // Clear preview and reset images
+                if (is_preview) {
+                    auto* previewNode = static_cast<PreviewNode*>(node.get());
+                    previewNode->ClearPreview();
+                    previewNode->input_image = ImageData();
+                    previewNode->output_image = ImageData();
+                } else if (is_download) {
+                    auto* downloadNode = static_cast<DownloadNode*>(node.get());
+                    downloadNode->ClearPreview();
+                    downloadNode->input_image = ImageData();
+                    downloadNode->output_image = ImageData();
+                }
+            }
+        }
+    }
+
     // ========== Cleanup ==========
     ImGui::PopFont();
     GUI::popStyle();
