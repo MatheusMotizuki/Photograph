@@ -216,6 +216,20 @@ void GUI::newFrame()
     int start_attr, end_attr;
     bool snap_create = true;
     if (ImNodes::IsLinkCreated(&start_attr, &end_attr, &snap_create)) {
+        NodeBase* dst = findNodeByAttr(end_attr);
+        if (auto* downloadNode = dynamic_cast<DownloadNode*>(dst)) {
+            int input_id = downloadNode->GetInputId();
+            bool already_connected = std::any_of(
+                n_links.begin(), n_links.end(),
+                [input_id](const Link& link) { return link.end_attr == input_id; }
+            );
+            if (already_connected) {
+                ImGui::PopFont();
+                GUI::popStyle();
+                ImGui::End();
+                return;
+            }
+        }
         Link link;
         link.id = Link::link_next_id++;
         link.init_attr = start_attr;
@@ -223,28 +237,33 @@ void GUI::newFrame()
         n_links.push_back(link);
     }
 
-    // TODO: make this work, somehow
-    // int dropped_attr;
-    // if (ImNodes::IsLinkDropped(&dropped_attr)) {
-    //     // Find the link that was dropped
-    //     auto link_it = std::find_if(n_links.begin(), n_links.end(),
-    //         [dropped_attr](const Link& link) {
-    //             return link.end_attr == dropped_attr;
-    //         });
+    int dropped_attr;
+    if (ImNodes::IsLinkDropped(&dropped_attr)) {
+        auto link_it = std::find_if(n_links.begin(), n_links.end(),
+            [dropped_attr](const Link& link) { return link.end_attr == dropped_attr; });
 
-    //     if (link_it != n_links.end()) {
-    //         // Try to clear preview if the destination node is DownloadNode or PreviewNode
-    //         NodeBase* dst = findNodeByAttr(link_it->end_attr);
-    //         if (dst) {
-    //             if (auto* downloadNode = dynamic_cast<DownloadNode*>(dst)) {
-    //                 downloadNode->ClearPreview();
-    //             }
-    //             else if (auto* previewNode = dynamic_cast<PreviewNode*>(dst)) {
-    //                 previewNode->ClearPreview();
-    //             }
-    //         }
-    //     }
-    // }
+        NodeBase* dst = (link_it != n_links.end()) ? findNodeByAttr(link_it->end_attr) : nullptr;
+
+        auto clearPreview = [](NodeBase* node) {
+            if (auto* downloadNode = dynamic_cast<DownloadNode*>(node)) {
+                downloadNode->ClearPreview();
+                downloadNode->input_image = ImageData();
+                downloadNode->output_image = ImageData();
+            } else if (auto* previewNode = dynamic_cast<PreviewNode*>(node)) {
+                previewNode->ClearPreview();
+                previewNode->input_image = ImageData();
+                previewNode->output_image = ImageData();
+            }
+        };
+
+        if (dst) {
+            clearPreview(dst);
+        } else {
+            for (auto& node : n_nodes) {
+                clearPreview(node.get());
+            }
+        }
+    }
 
     // Handle Link Destruction
     int link_id;
@@ -318,6 +337,32 @@ void GUI::newFrame()
     if (!death_link.empty()) {
         certainDeathLink(n_links, death_link);
         death_link.clear();
+    }
+
+    // === After deletion, update preview/download nodes if disconnected ===
+    for (auto& node : n_nodes) {
+        bool is_preview = dynamic_cast<PreviewNode*>(node.get());
+        bool is_download = dynamic_cast<DownloadNode*>(node.get());
+        if (is_preview || is_download) {
+            int input_id = node->GetInputId();
+            // Check if any link connects to this node's input
+            bool connected = std::any_of(n_links.begin(), n_links.end(),
+                [input_id](const Link& link) { return link.end_attr == input_id; });
+            if (!connected) {
+                // Clear preview and reset images
+                if (is_preview) {
+                    auto* previewNode = static_cast<PreviewNode*>(node.get());
+                    previewNode->ClearPreview();
+                    previewNode->input_image = ImageData();
+                    previewNode->output_image = ImageData();
+                } else if (is_download) {
+                    auto* downloadNode = static_cast<DownloadNode*>(node.get());
+                    downloadNode->ClearPreview();
+                    downloadNode->input_image = ImageData();
+                    downloadNode->output_image = ImageData();
+                }
+            }
+        }
     }
 
     // ========== Cleanup ==========
