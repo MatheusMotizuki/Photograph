@@ -7,8 +7,6 @@ int main(int argc, char* argv[])
 {
     std::cout << "Starting PhotoGraph application..." << std::endl;
 
-    std::cout << "Running in WebAssembly mode" << std::endl;
-
     Application app("PhotoGraph", 1280, 720);
     
     std::cout << "Initializing application..." << std::endl;

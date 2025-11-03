@@ -30,6 +30,8 @@ void BlurNode::NodeContent() {
     if (prev_blur_amount != m_blur_amount || prev_blur_type != m_blur_type) {
         MarkNeedsReprocess();
     }
+
+    ImGui::TextDisabled("Note: This node may cause significant lag.");
 }
 
 void BlurNode::setStyleCombo() {
@@ -76,41 +78,61 @@ void BlurNode::ProcessInternal() {
     // Process only RGB channels (skip alpha at index 3)
     int process_channels = std::min(3, channels);
     
-    // For each channel (excluding alpha), compute integral image and apply box filter
-    for (int c = 0; c < process_channels; ++c) {
-        // Build integral image for this channel
-        std::vector<int> integral((width + 1) * (height + 1), 0);
-        
-        for (int y = 1; y <= height; ++y) {
-            for (int x = 1; x <= width; ++x) {
-                int pixel_val = input_image.pixels[((y-1) * width + (x-1)) * channels + c];
-                integral[y * (width + 1) + x] = pixel_val +
-                    integral[(y-1) * (width + 1) + x] +
-                    integral[y * (width + 1) + (x-1)] -
-                    integral[(y-1) * (width + 1) + (x-1)];
-            }
-        }
-        
-        // Apply box filter using integral image (O(1) per pixel!)
-        for (int y = 0; y < height; ++y) {
+    // Pre-allocate temporary buffer for separable blur
+    std::vector<unsigned char> temp(width * height * channels);
+    
+    // HORIZONTAL PASS: blur each row independently
+    for (int y = 0; y < height; ++y) {
+        for (int c = 0; c < process_channels; ++c) {
+            // Build integral for this row
+            std::vector<int> row_integral(width + 1, 0);
             for (int x = 0; x < width; ++x) {
-                int y1 = std::max(0, y - radius);
-                int y2 = std::min(height - 1, y + radius);
+                int pixel_val = input_image.pixels[(y * width + x) * channels + c];
+                row_integral[x + 1] = row_integral[x] + pixel_val;
+            }
+            
+            // Apply box filter horizontally
+            for (int x = 0; x < width; ++x) {
                 int x1 = std::max(0, x - radius);
                 int x2 = std::min(width - 1, x + radius);
                 
-                // Convert to integral image coordinates (1-indexed)
-                int sum = integral[(y2 + 1) * (width + 1) + (x2 + 1)] -
-                          integral[y1 * (width + 1) + (x2 + 1)] -
-                          integral[(y2 + 1) * (width + 1) + x1] +
-                          integral[y1 * (width + 1) + x1];
+                int sum = row_integral[x2 + 1] - row_integral[x1];
+                int count = x2 - x1 + 1;
                 
-                int count = (y2 - y1 + 1) * (x2 - x1 + 1);
+                temp[(y * width + x) * channels + c] = sum / count;
+            }
+        }
+        
+        // Copy alpha channel unchanged
+        if (channels == 4) {
+            for (int x = 0; x < width; ++x) {
+                temp[(y * width + x) * channels + 3] = input_image.pixels[(y * width + x) * channels + 3];
+            }
+        }
+    }
+    
+    // VERTICAL PASS: blur each column independently
+    for (int x = 0; x < width; ++x) {
+        for (int c = 0; c < process_channels; ++c) {
+            // Build integral for this column
+            std::vector<int> col_integral(height + 1, 0);
+            for (int y = 0; y < height; ++y) {
+                int pixel_val = temp[(y * width + x) * channels + c];
+                col_integral[y + 1] = col_integral[y] + pixel_val;
+            }
+            
+            // Apply box filter vertically
+            for (int y = 0; y < height; ++y) {
+                int y1 = std::max(0, y - radius);
+                int y2 = std::min(height - 1, y + radius);
+                
+                int sum = col_integral[y2 + 1] - col_integral[y1];
+                int count = y2 - y1 + 1;
+                
                 output_image.pixels[(y * width + x) * channels + c] = sum / count;
             }
         }
     }
-    // Alpha channel (if exists) remains unchanged
 }
 
 void BlurNode::Description() {

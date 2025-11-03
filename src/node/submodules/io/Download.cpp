@@ -165,6 +165,7 @@ void DownloadNode::ClearPreview() {
     }
     m_tex_w = 0;
     m_tex_h = 0;
+    m_last_pixels.clear();
     output_image = ImageData();
 }
 
@@ -175,13 +176,20 @@ void DownloadNode::ProcessInternal() {
         return;
     }
 
-    std::cout << "[DownloadNode] Updating texture with new image data." << std::endl;
-    CreateTextureFromData(
-        input_image.pixels.data(),
-        input_image.width,
-        input_image.height,
-        input_image.channels
-    );
+    // Check if texture doesn't exist or if pixel data has actually changed
+    bool needs_update = !m_texture || m_last_pixels != input_image.pixels;
+    
+    if (needs_update) {
+        std::cout << "[DownloadNode] Updating texture with new image data." << std::endl;
+        CreateTextureFromData(
+            input_image.pixels.data(),
+            input_image.width,
+            input_image.height,
+            input_image.channels
+        );
+        // Cache the current pixel data
+        m_last_pixels = input_image.pixels;
+    }
 }
 
 void DownloadNode::Description() {

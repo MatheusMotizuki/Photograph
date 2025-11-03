@@ -9,6 +9,7 @@ private:
     GLuint m_texture = 0;
     int m_tex_w = 0;
     int m_tex_h = 0;
+    std::vector<unsigned char> m_last_pixels;
 
 protected:
     void NodeContent() override;

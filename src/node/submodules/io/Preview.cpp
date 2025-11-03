@@ -115,6 +115,7 @@ void PreviewNode::ClearPreview() {
     }
     m_tex_w = 0;
     m_tex_h = 0;
+    m_last_pixels.clear();
     output_image = ImageData();
 }
 
@@ -124,10 +125,8 @@ void PreviewNode::ProcessInternal() {
         return;
     }
 
-    // Only recreate texture if dimensions changed or texture doesn't exist
-    bool needs_update = (!m_texture || 
-        m_tex_w != input_image.width || 
-        m_tex_h != input_image.height);
+    // Only recreate texture if it doesn't exist or pixel data changed
+    bool needs_update = !m_texture || m_last_pixels != input_image.pixels;
     
     if (needs_update) {
         CreateTextureFromData(
@@ -136,6 +135,8 @@ void PreviewNode::ProcessInternal() {
             input_image.height,
             input_image.channels
         );
+        // Cache the current pixel data
+        m_last_pixels = input_image.pixels;
     }
     
     // Pass through the input to output (so other nodes can chain from preview)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "node/NodeBase.hpp"
+#include <emscripten.h>
 
 class BlurNode : public NodeBase {
 private:

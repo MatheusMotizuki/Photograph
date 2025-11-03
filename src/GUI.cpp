@@ -179,28 +179,33 @@ void GUI::newFrame()
         n_links.push_back(link);
     }
 
-    // TODO: make this work, somehow
-    // int dropped_attr;
-    // if (ImNodes::IsLinkDropped(&dropped_attr)) {
-    //     // Find the link that was dropped
-    //     auto link_it = std::find_if(n_links.begin(), n_links.end(),
-    //         [dropped_attr](const Link& link) {
-    //             return link.end_attr == dropped_attr;
-    //         });
+    int dropped_attr;
+    if (ImNodes::IsLinkDropped(&dropped_attr)) {
+        auto link_it = std::find_if(n_links.begin(), n_links.end(),
+            [dropped_attr](const Link& link) { return link.end_attr == dropped_attr; });
 
-    //     if (link_it != n_links.end()) {
-    //         // Try to clear preview if the destination node is DownloadNode or PreviewNode
-    //         NodeBase* dst = findNodeByAttr(link_it->end_attr);
-    //         if (dst) {
-    //             if (auto* downloadNode = dynamic_cast<DownloadNode*>(dst)) {
-    //                 downloadNode->ClearPreview();
-    //             }
-    //             else if (auto* previewNode = dynamic_cast<PreviewNode*>(dst)) {
-    //                 previewNode->ClearPreview();
-    //             }
-    //         }
-    //     }
-    // }
+        NodeBase* dst = (link_it != n_links.end()) ? findNodeByAttr(link_it->end_attr) : nullptr;
+
+        auto clearPreview = [](NodeBase* node) {
+            if (auto* downloadNode = dynamic_cast<DownloadNode*>(node)) {
+                downloadNode->ClearPreview();
+                downloadNode->input_image = ImageData();
+                downloadNode->output_image = ImageData();
+            } else if (auto* previewNode = dynamic_cast<PreviewNode*>(node)) {
+                previewNode->ClearPreview();
+                previewNode->input_image = ImageData();
+                previewNode->output_image = ImageData();
+            }
+        };
+
+        if (dst) {
+            clearPreview(dst);
+        } else {
+            for (auto& node : n_nodes) {
+                clearPreview(node.get());
+            }
+        }
+    }
 
     // Handle Link Destruction
     int link_id;
