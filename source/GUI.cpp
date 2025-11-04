@@ -284,6 +284,7 @@ void GUI::newFrame()
             n_nodes.push_back(std::move(node));
             // upon node creation send to server information about the node, the ID and the position
             // SendNodeToServer(node->GetId(), Menu.GetNodeType(), position);
+            if (g_wsClient) g_wsClient->newNode(GUI::unique_code, node->GetId(), Menu.GetNodeType(), position);
         }
     }
 
@@ -317,46 +318,37 @@ void GUI::newFrame()
     ImNodes::MiniMap(0.2f, ImNodesMiniMapLocation_BottomRight);
     ImNodes::EndNodeEditor();
 
-    // ========== IMPORTANT: Handle Link Creation/Destruction AFTER EndNodeEditor() ==========
+    // ========== Server/Client communication ==========
 
-    // Collect all information
-    // and send to ws server
-    // if(!g_wsClient) { // change this to true
-    //     if (ImNodes::NumSelectedNodes() > 0) {
-    //         std::vector<int> selected_ids(ImNodes::NumSelectedNodes());
-    //         ImNodes::GetSelectedNodes(selected_ids.data());
-    //         for (int node_id : selected_ids) {
-    //             selected_nodes.insert(node_id);
-    //             std::cout << "Selected node: " << node_id << std::endl;
-    //         }
-    //     }
-
-    //     // Print mouse position whenever inside the main window
-    //     if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
-    //         ImVec2 mousePos = ImGui::GetMousePos();
-    //         std::cout << "Mouse Position: (" << mousePos.x << ", " << mousePos.y << ")" << std::endl;
-    //         // Move this inside an ImGui window to display
-    //         ImGui::Begin("##mouse imformation", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_Tooltip);
-    //         ImGui::Text("someone");
-    //         ImGui::End();
-    //     }
-    // }
-
+    // this will only work when connected to a server
     if (g_wsClient){
-        // Print mouse position whenever inside the main window
-        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
-            ImVec2 mousePos = ImGui::GetMousePos();
+        static ImVec2 prevMousePos = ImVec2(-1.0f, -1.0f);
+        ImVec2 mousePos = ImGui::GetMousePos();
+
+        if ((mousePos.x != prevMousePos.x || mousePos.y != prevMousePos.y) &&
+            ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_AllowWhenBlockedByPopup)) {
+            prevMousePos = mousePos;
             g_wsClient->sendMouse(GUI::unique_code, mousePos);
         }
 
-        ImVec2 remotePos = g_wsClient->getRemoteMousePos();
-        if (remotePos.x >= 0 && remotePos.y >= 0 && std::isfinite(remotePos.x) && std::isfinite(remotePos.y)) {
-            ImGui::SetNextWindowPos(remotePos, ImGuiCond_Always);
-            ImGui::Begin("Remote Mouse", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_Tooltip);
-            ImGui::Text("Remote user");
-            ImGui::End();
+        // Draw all remote cursors
+        const auto remoteCursors = g_wsClient->getAllRemoteMousePositions();
+        for (const auto& [userId, remotePos] : remoteCursors) {
+            if (remotePos.x >= 0 && remotePos.y >= 0 && 
+                std::isfinite(remotePos.x) && std::isfinite(remotePos.y)) {
+                ImGui::SetNextWindowPos({remotePos.x + 20, remotePos.y + 10}, ImGuiCond_Always);
+                ImGui::Begin(("Remote##" + userId).c_str(), nullptr, 
+                    ImGuiWindowFlags_AlwaysAutoResize | 
+                    ImGuiWindowFlags_NoCollapse | 
+                    ImGuiWindowFlags_NoTitleBar | 
+                    ImGuiWindowFlags_Tooltip);
+                ImGui::Text("%s", userId.c_str());
+                ImGui::End();
+            }
         }
     }
+
+    // ========== IMPORTANT: Handle Link Creation/Destruction AFTER EndNodeEditor() ==========
     
     // Helper Lambda
     auto findNodeByAttr = [&](int attr_id) -> NodeBase* {
@@ -581,6 +573,7 @@ int ConnectAndCreateSession(std::string route, std::string roomID) {
         g_wsClient = new WebSocketClient(route);
         g_wsClient->create(roomID);
     }
+    GUI::unique_code = roomID;
     return 0;
 }
 
@@ -589,5 +582,6 @@ int ConnectAndJoinSession(std::string route, std::string roomID) {
         g_wsClient = new WebSocketClient(route);
         g_wsClient->join(roomID);
     }
+    GUI::unique_code = roomID;
     return 0;
 }

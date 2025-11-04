@@ -26,7 +26,7 @@ public:
     NodeMenu() = default;
     ~NodeMenu() = default;
 
-    enum class NodeType{ // types of nodes
+    enum class NodeType : int { // types of nodes
         InputNode,
         MonochromeNode,
         BrightnessNode,
