@@ -15,6 +15,8 @@
 
 #include "node/NodeMenu.hpp"
 
+#include "WebSocketClient.hpp"
+
 class GUI {
 private:
     SDL_Window* m_window;
@@ -59,4 +61,7 @@ public:
 
     std::unordered_set<int> death_node;
     std::unordered_set<int> death_link;
+
+    static std::string generate_unique_code();
+    static std::string unique_code;
 };

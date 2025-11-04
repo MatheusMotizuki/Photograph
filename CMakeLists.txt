@@ -42,6 +42,13 @@ if(NOT imnodes_POPULATED)
     # We don't call add_subdirectory for imnodes because it doesn't have a CMakeLists.txt file
 endif()
 
+FetchContent_Declare(
+    ixwebsocket
+    GIT_REPOSITORY https://github.com/machinezone/IXWebSocket.git
+    GIT_TAG v11.4.6
+)
+FetchContent_MakeAvailable(ixwebsocket)
+
 # Configure ImGui source files
 set(IMGUI_SOURCES
     ${imgui_SOURCE_DIR}/imgui.cpp
@@ -98,6 +105,7 @@ target_compile_definitions(photoGraph PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
 target_link_libraries(photoGraph PRIVATE 
     SDL2::SDL2-static
     SDL2::SDL2main
+    ixwebsocket
 )
 
 target_precompile_headers(photoGraph PRIVATE

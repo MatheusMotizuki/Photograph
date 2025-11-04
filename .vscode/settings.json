@@ -73,6 +73,10 @@
         "variant": "cpp",
         "regex": "cpp",
         "span": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "coroutine": "cpp",
+        "forward_list": "cpp",
+        "source_location": "cpp",
+        "ranges": "cpp"
     }
 }

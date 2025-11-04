@@ -8,7 +8,11 @@
 #include <cstring>
 
 // function prototypes
-std::string generate_unique_code();
+int ConnectAndCreateSession(std::string route, std::string roomID);
+int ConnectAndJoinSession(std::string route, std::string roomID);
+
+WebSocketClient* g_wsClient = nullptr;
+std::string GUI::unique_code = "";
 
 GUI::GUI(SDL_Window* window, SDL_Renderer* renderer)
     : m_window(window)
@@ -168,7 +172,8 @@ void initialOption()
 
             if (ImGui::Button("New Session", ImVec2(250, 40)))
             {
-                gen_code = generate_unique_code();
+                if (GUI::unique_code.empty()) // Only generate if not already set
+                    GUI::unique_code = GUI::generate_unique_code();
                 session_state = 1;
             }
 
@@ -184,7 +189,7 @@ void initialOption()
             if (ImGui::Button("Join Session", ImVec2(250, 40)))
             {
                 std::cout << "Joining session: " << session_code << std::endl;
-                JoinWebSocketServer(session_code);
+                ConnectAndJoinSession("ws://localhost:58058/ws", session_code);
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndDisabled();
@@ -193,12 +198,12 @@ void initialOption()
         {
             ImGui::Text("Your session code:");
             ImGui::Spacing();
-            
+
             ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]); // Use default font or monospace if available
             ImGui::SetNextItemWidth(250);
-            // Use a local null-terminated buffer for ImGui::InputText to avoid assertion
+
             char gen_buf[64];
-            std::strncpy(gen_buf, gen_code.c_str(), sizeof(gen_buf));
+            std::strncpy(gen_buf, GUI::unique_code.c_str(), sizeof(gen_buf));
             gen_buf[sizeof(gen_buf) - 1] = '\0';
             ImGui::InputText("##gen_code", gen_buf, sizeof(gen_buf), ImGuiInputTextFlags_ReadOnly);
             ImGui::PopFont();
@@ -207,14 +212,13 @@ void initialOption()
             
             if (ImGui::Button("Copy to Clipboard", ImVec2(250, 40)))
             {
-                ImGui::SetClipboardText(gen_code.c_str());
+                ImGui::SetClipboardText(GUI::unique_code.c_str());
             }
 
             if (ImGui::Button("Start Session", ImVec2(250, 40)))
             {
-                std::cout << "Starting session with code: " << gen_code << std::endl;
-                // TODO: Start WebSocket server here
-                // CreateWebSocketServer(gen_code);
+                std::cout << "Starting session with code: " << GUI::unique_code << std::endl;
+                ConnectAndCreateSession("ws://localhost:58058/ws", GUI::unique_code);
                 ImGui::CloseCurrentPopup();
                 session_state = 0; // Reset for next time
             }
@@ -278,6 +282,8 @@ void GUI::newFrame()
         if (node) {
             ImNodes::SetNodeScreenSpacePos(node->GetId(), position);
             n_nodes.push_back(std::move(node));
+            // upon node creation send to server information about the node, the ID and the position
+            // SendNodeToServer(node->GetId(), Menu.GetNodeType(), position);
         }
     }
 
@@ -312,6 +318,45 @@ void GUI::newFrame()
     ImNodes::EndNodeEditor();
 
     // ========== IMPORTANT: Handle Link Creation/Destruction AFTER EndNodeEditor() ==========
+
+    // Collect all information
+    // and send to ws server
+    // if(!g_wsClient) { // change this to true
+    //     if (ImNodes::NumSelectedNodes() > 0) {
+    //         std::vector<int> selected_ids(ImNodes::NumSelectedNodes());
+    //         ImNodes::GetSelectedNodes(selected_ids.data());
+    //         for (int node_id : selected_ids) {
+    //             selected_nodes.insert(node_id);
+    //             std::cout << "Selected node: " << node_id << std::endl;
+    //         }
+    //     }
+
+    //     // Print mouse position whenever inside the main window
+    //     if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
+    //         ImVec2 mousePos = ImGui::GetMousePos();
+    //         std::cout << "Mouse Position: (" << mousePos.x << ", " << mousePos.y << ")" << std::endl;
+    //         // Move this inside an ImGui window to display
+    //         ImGui::Begin("##mouse imformation", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_Tooltip);
+    //         ImGui::Text("someone");
+    //         ImGui::End();
+    //     }
+    // }
+
+    if (g_wsClient){
+        // Print mouse position whenever inside the main window
+        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
+            ImVec2 mousePos = ImGui::GetMousePos();
+            g_wsClient->sendMouse(GUI::unique_code, mousePos);
+        }
+
+        ImVec2 remotePos = g_wsClient->getRemoteMousePos();
+        if (remotePos.x >= 0 && remotePos.y >= 0 && std::isfinite(remotePos.x) && std::isfinite(remotePos.y)) {
+            ImGui::SetNextWindowPos(remotePos, ImGuiCond_Always);
+            ImGui::Begin("Remote Mouse", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_Tooltip);
+            ImGui::Text("Remote user");
+            ImGui::End();
+        }
+    }
     
     // Helper Lambda
     auto findNodeByAttr = [&](int attr_id) -> NodeBase* {
@@ -345,6 +390,7 @@ void GUI::newFrame()
         link.init_attr = start_attr;
         link.end_attr = end_attr;
         n_links.push_back(link);
+        // send to the server the information about link creation
     }
 
     int dropped_attr;
@@ -373,6 +419,7 @@ void GUI::newFrame()
                 clearPreview(node.get());
             }
         }
+        // send to the server this also, abou link drop
     }
 
     // Handle Link Destruction
@@ -383,6 +430,7 @@ void GUI::newFrame()
             std::remove_if(n_links.begin(), n_links.end(),
                 [link_id](const Link& link) { return link.id == link_id; }),
             n_links.end()
+            // send to server the link deletion
         );
     }
 
@@ -399,6 +447,7 @@ void GUI::newFrame()
         if (src && dst) {
             dst->input_image = src->output_image;
             dst->Process();
+            // send to server when this happens
         }
     }
 
@@ -413,6 +462,8 @@ void GUI::newFrame()
         for (int link_id : selected_links) {
             death_link.insert(link_id);
         }
+
+        // send to server both, ig?
     }
 
     // Delete nodes and their connected links
@@ -509,7 +560,7 @@ inline void GUI::certainDeathLink(std::vector<Link>& n_links, std::unordered_set
     n_links.end());
 }
 
-std::string generate_unique_code() {
+std::string GUI::generate_unique_code() {
     static const char chars[] = "abcdefghijklmnopqrstuvwxyz0123456789";
     static std::mt19937_64 rng((std::random_device())());
     std::uniform_int_distribution<std::size_t> dist(0, sizeof(chars) - 2);
@@ -525,46 +576,18 @@ std::string generate_unique_code() {
     return gen_part(4) + "-" + gen_part(5);
 }
 
-void CreateWebSocketServer(){
-
+int ConnectAndCreateSession(std::string route, std::string roomID) {
+    if (!g_wsClient) {
+        g_wsClient = new WebSocketClient(route);
+        g_wsClient->create(roomID);
+    }
+    return 0;
 }
 
-void JoinWebSocketServer(const std::string& session_code) {
-    client c;
-    std::string uri = "ws://localhost:9002"; // Change to your server address
-
-    try {
-        c.init_asio();
-
-        c.set_open_handler([&c, session_code](websocketpp::connection_hdl hdl) {
-            nlohmann::json msg = {
-                {"topic", "room.create"},
-                {"room_id", session_code}
-            };
-            std::string payload = msg.dump();
-            websocketpp::lib::error_code ec;
-            c.send(hdl, payload, websocketpp::frame::opcode::text, ec);
-            if (ec) {
-                std::cout << "Send failed: " << ec.message() << std::endl;
-            } else {
-                std::cout << "Sent: " << payload << std::endl;
-            }
-        });
-
-        c.set_message_handler([](client* /*c*/, websocketpp::connection_hdl, client::message_ptr msg) {
-            std::cout << "Received: " << msg->get_payload() << std::endl;
-        });
-
-        websocketpp::lib::error_code ec;
-        client::connection_ptr con = c.get_connection(uri, ec);
-        if (ec) {
-            std::cout << "Connection failed: " << ec.message() << std::endl;
-            return;
-        }
-
-        c.connect(con);
-        c.run();
-    } catch (const std::exception& e) {
-        std::cout << "Exception: " << e.what() << std::endl;
+int ConnectAndJoinSession(std::string route, std::string roomID) {
+    if (!g_wsClient) {
+        g_wsClient = new WebSocketClient(route);
+        g_wsClient->join(roomID);
     }
+    return 0;
 }
