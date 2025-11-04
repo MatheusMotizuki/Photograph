@@ -4,15 +4,23 @@
 #include "json.hpp"
 #include "imgui.h"
 #include "imnodes.h"
+#include <mutex>
 #include <string>
 #include <memory>
 #include <atomic>
 #include <iostream>
+#include <unordered_map>
+
+#include "node/NodeMenu.hpp"
 
 class WebSocketClient {
 public:
     enum class Action { None, Join, Create };
-    ImVec2 getRemoteMousePos() const { return m_remoteMousePos; }
+
+    std::unordered_map<std::string, ImVec2> getAllRemoteMousePositions() const {
+        std::lock_guard<std::mutex> lock(m_positionsMutex);
+        return m_remoteMousePositions;
+    }
 
     explicit WebSocketClient(const std::string& url)
         : m_url(url), m_running(false), m_pendingAction(Action::None) {}
@@ -21,18 +29,20 @@ public:
         disconnect();
     }
 
-    // Prepare to join a room
     void join(const std::string& room) {
         this->setup(room, Action::Join);
     }
 
-    // Prepare to create a room
     void create(const std::string& room) {
         this->setup(room, Action::Create);
     }
 
-    void sendMouse(std::string& room, ImVec2& cursor) {
-        this->info(room, cursor);
+    void sendMouse(const std::string& room, const ImVec2& cursor) { 
+        info(room, cursor); 
+    }
+
+    void newNode(std::string& room, const int& nodeID, const NodeMenu::NodeType& NodeType, ImVec2& position) {
+        createNode(room, nodeID, NodeType, position);
     }
 
     void disconnect() {
@@ -47,7 +57,8 @@ public:
     }
 
 private:
-    ImVec2 m_remoteMousePos = ImVec2(-1, -1); // Default to invalid
+    mutable std::mutex m_positionsMutex;
+    std::unordered_map<std::string, ImVec2> m_remoteMousePositions;
 
     void setup(const std::string& room, Action action) {
         if (m_running.load()) return;
@@ -58,47 +69,79 @@ private:
 
         m_webSocket->setOnMessageCallback([this](const ix::WebSocketMessagePtr& msg) {
             if (!msg) return;
+            
             if (msg->type == ix::WebSocketMessageType::Open) {
                 if (!m_pendingRoom.empty()) {
                     nlohmann::json j;
                     j["room_id"] = m_pendingRoom;
-                    if (m_pendingAction == Action::Create) {
-                        j["topic"] = "room.create";
-                    } else if (m_pendingAction == Action::Join) {
-                        j["topic"] = "room.join";
-                    }
-                    std::cout << "Sending: " << j.dump() << std::endl;
+                    j["topic"] = (m_pendingAction == Action::Create) ? "room.create" : "room.join";
                     m_webSocket->send(j.dump());
                 }
+                return;
             }
+            
+            if (msg->type == ix::WebSocketMessageType::Error) {
+                std::cout << "❌ Error: " << msg->errorInfo.reason << std::endl;
+                return;
+            }
+            
             if (msg->type == ix::WebSocketMessageType::Message) {
-                std::cout << "📩 Message received: " << msg->str << std::endl;
+                std::cout << "📩 Message received\n";
                 try {
                     auto j = nlohmann::json::parse(msg->str);
-                    ImVec2 cursor{};
-                    if (j.contains("metadata")) {
-                        const auto& metadata = j["metadata"];
-                        if (metadata.contains("mousex") && metadata["mousex"].is_number()) {
-                            cursor.x = metadata["mousex"];
-                        }
-                        if (metadata.contains("mousey") && metadata["mousey"].is_number()) {
-                            cursor.y = metadata["mousey"];
-                        }
-                        m_remoteMousePos = cursor;
-                    } else if (j.contains("mousex") && j.contains("mousey") &&
-                            j["mousex"].is_number() && j["mousey"].is_number()) {
-                        cursor.x = j["mousex"];
-                        cursor.y = j["mousey"];
-                        m_remoteMousePos = cursor;
+
+                    // Check for "topic" field
+                    if (!j.contains("topic") || !j["topic"].is_string()) {
+                        std::cout << "⚠️ No topic in message: " << j.dump() << std::endl;
+                        return;
+                    }
+                    std::string topic = j["topic"].get<std::string>();
+
+                    // Extract sender (required for multi-user)
+                    std::string sender;
+                    if (j.contains("sender") && j["sender"].is_string()) {
+                        sender = j["sender"].get<std::string>();
+                    }
+
+                    // Normalize data location
+                    const nlohmann::json* data_ptr = nullptr;
+                    if (j.contains("data")) {
+                        data_ptr = &j["data"];
+                    } else if (j.contains("metadata")) {
+                        data_ptr = &j["metadata"];
                     } else {
-                        std::cout << "Received JSON: " << j.dump() << std::endl;
+                        data_ptr = &j;
+                    }
+
+                    if (topic == "room.mouse") {
+                        // Accept both array and object for coordinates
+                        if (data_ptr->is_array()) {
+
+                            ImVec2 cursor{
+                                (*data_ptr)[0].get<float>(),
+                                (*data_ptr)[1].get<float>()
+                            };
+
+                            std::lock_guard<std::mutex> lock(m_positionsMutex);
+                            m_remoteMousePositions[sender.empty() ? "unknown" : sender] = cursor;
+
+                        } else {
+                            std::cout << "⚠️ Received room.mouse without coordinates: " << j.dump() << std::endl;
+                        }
+                    } else if (topic == "room.create.node") {
+                        // Handle node creation (add your logic here)
+                        std::cout << "🟩 Node creation event: " << j.dump() << std::endl;
+                        // Example: extract node info if needed
+                        // int node_id = (*data_ptr)["node_id"].get<int>();
+                        // int node_type = (*data_ptr)["node_type"].get<int>();
+                        // ImVec2 pos{(*data_ptr)["node_position_x"].get<float>(), (*data_ptr)["node_position_y"].get<float>()};
+                        // ... your handling code ...
+                    } else {
+                        std::cout << "⚠️ Unhandled topic: " << topic << " | " << j.dump() << std::endl;
                     }
                 } catch (const std::exception& e) {
                     std::cout << "⚠️ JSON parse error: " << e.what() << std::endl;
                 }
-            }
-            if (msg->type == ix::WebSocketMessageType::Error) {
-                std::cout << "❌ Error: " << msg->errorInfo.reason << std::endl;
             }
         });
 
@@ -106,22 +149,29 @@ private:
         m_running = true;
     }
 
-    // this will send information about the current node position
-    void info(std::string& room, ImVec2& cursor) {
-        if (!m_running.load()) return;
-        if (!m_webSocket) return;
-        if (room.empty()) return;
-
-        std::cout << "room id is: " << room << std::endl;
+    void info(const std::string& room, const ImVec2& cursor) {
+        if (!m_running.load() || !m_webSocket || room.empty()) return;
 
         nlohmann::json msg;
-        msg["topic"] = "room.broadcast";
+        msg["topic"] = "room.mouse";
         msg["room_id"] = room;
-        // metadata is a any, in the server so we can send anything
-        msg["metadata"] = {
-            {"mousex", cursor.x},
-            {"mousey", cursor.y}
-        };
+        msg["mousex"] = cursor.x;
+        msg["mousey"] = cursor.y;
+        
+        m_webSocket->send(msg.dump());
+    }
+
+    void createNode(std::string& room, const int& nodeID, const NodeMenu::NodeType& NodeType, ImVec2& position) {
+        if (!m_running.load() || !m_webSocket || room.empty()) return;
+
+        nlohmann::json msg;
+        msg["topic"] = "room.create.node";
+        msg["room_id"] = room;
+        msg["node_id"] = nodeID;
+        msg["node_type"] = NodeType;
+        msg["node_position_x"] = position.x;
+        msg["node_position_y"] = position.y;
+
         m_webSocket->send(msg.dump());
     }
 
