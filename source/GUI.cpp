@@ -5,6 +5,7 @@
 
 #include <random>
 #include <string>
+#include <cstring>
 
 // function prototypes
 std::string generate_unique_code();
@@ -183,13 +184,11 @@ void initialOption()
             if (ImGui::Button("Join Session", ImVec2(250, 40)))
             {
                 std::cout << "Joining session: " << session_code << std::endl;
-                // TODO: Start WebSocket client here
-                // JoinWebSocketServer(session_code);
+                JoinWebSocketServer(session_code);
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndDisabled();
         }
-        // State 1: Show Generated Code
         else if (session_state == 1)
         {
             ImGui::Text("Your session code:");
@@ -197,7 +196,11 @@ void initialOption()
             
             ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]); // Use default font or monospace if available
             ImGui::SetNextItemWidth(250);
-            ImGui::InputText("##gen_code", gen_code.data(), gen_code.size(), ImGuiInputTextFlags_ReadOnly);
+            // Use a local null-terminated buffer for ImGui::InputText to avoid assertion
+            char gen_buf[64];
+            std::strncpy(gen_buf, gen_code.c_str(), sizeof(gen_buf));
+            gen_buf[sizeof(gen_buf) - 1] = '\0';
+            ImGui::InputText("##gen_code", gen_buf, sizeof(gen_buf), ImGuiInputTextFlags_ReadOnly);
             ImGui::PopFont();
 
             ImGui::Spacing();
@@ -526,6 +529,42 @@ void CreateWebSocketServer(){
 
 }
 
-void JoinWebSocketServer() {
+void JoinWebSocketServer(const std::string& session_code) {
+    client c;
+    std::string uri = "ws://localhost:9002"; // Change to your server address
 
+    try {
+        c.init_asio();
+
+        c.set_open_handler([&c, session_code](websocketpp::connection_hdl hdl) {
+            nlohmann::json msg = {
+                {"topic", "room.create"},
+                {"room_id", session_code}
+            };
+            std::string payload = msg.dump();
+            websocketpp::lib::error_code ec;
+            c.send(hdl, payload, websocketpp::frame::opcode::text, ec);
+            if (ec) {
+                std::cout << "Send failed: " << ec.message() << std::endl;
+            } else {
+                std::cout << "Sent: " << payload << std::endl;
+            }
+        });
+
+        c.set_message_handler([](client* /*c*/, websocketpp::connection_hdl, client::message_ptr msg) {
+            std::cout << "Received: " << msg->get_payload() << std::endl;
+        });
+
+        websocketpp::lib::error_code ec;
+        client::connection_ptr con = c.get_connection(uri, ec);
+        if (ec) {
+            std::cout << "Connection failed: " << ec.message() << std::endl;
+            return;
+        }
+
+        c.connect(con);
+        c.run();
+    } catch (const std::exception& e) {
+        std::cout << "Exception: " << e.what() << std::endl;
+    }
 }
