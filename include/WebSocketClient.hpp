@@ -11,10 +11,9 @@
 #include <iostream>
 #include <functional>
 #include <unordered_map>
+#include <sstream>
 
-#include <curlpp/cURLpp.hpp>
-#include <curlpp/Options.hpp>
-#include <curlpp/Easy.hpp>
+#include <cpr/cpr.h>
 
 #include "stb_image_write.h"
 
@@ -88,6 +87,7 @@ private:
 
         m_webSocket->setOnMessageCallback([this](const ix::WebSocketMessagePtr& msg) {
             if (!msg) return;
+
             if (msg->type == ix::WebSocketMessageType::Open) {
                 if (!m_pendingRoom.empty()) {
                     nlohmann::json j;
@@ -224,9 +224,6 @@ private:
 
     void imageInfo(const std::string& room, std::vector<uint8_t> pixels, int width, int height, int channels) {
         try{
-            curlpp::Cleanup myCleanup;
-            curlpp::Easy request;
-
             std::vector<uint8_t> compressed;
             auto write_func = [](void* context, void* data, int size) {
                 auto* buf = static_cast<std::vector<uint8_t>*>(context);
@@ -236,18 +233,19 @@ private:
             stbi_write_jpg_to_func(write_func, &compressed, width, height, channels, pixels.data(), quality);
 
             std::string url = "http://localhost:58058/upload";
-            request.setOpt(curlpp::options::Url(url));
-            std::string post_data(reinterpret_cast<char*>(compressed.data()), compressed.size());
-            request.setOpt(curlpp::options::PostFields(post_data));
-            request.setOpt(curlpp::options::PostFieldSize(post_data.size()));
-            request.setOpt(curlpp::options::HttpHeader({"Content-Type: image/jpg"}));
+            std::string body(compressed.begin(), compressed.end());
+            cpr::Response response = cpr::Post(
+                cpr::Url{url},
+                cpr::Body{body},
+                cpr::Header{{"Content-Type", "image/jpeg"}}
+            );
 
-            std::ostringstream response_stream;
-            request.setOpt(curlpp::options::WriteStream(&response_stream));
-            request.perform();
-            std::string response = response_stream.str();
+            if (response.status_code != 200) {
+                std::cout << "❌ Image upload failed with status: " << response.status_code << std::endl;
+                return;
+            }
 
-            auto resp = nlohmann::json::parse(response);
+            auto resp = nlohmann::json::parse(response.text);
             std::string image_url = resp["id"];
 
             nlohmann::json msg;

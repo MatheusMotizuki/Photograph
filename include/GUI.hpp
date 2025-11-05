@@ -10,6 +10,7 @@
 #include <memory>
 #include <iostream>
 #include <algorithm>
+#include <sstream>
 
 #include <SDL2/SDL.h>
 
