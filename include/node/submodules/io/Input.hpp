@@ -6,8 +6,10 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <chrono>
 
 #include "stb_image.h"
+#include "stb_image_resize2.h"
 
 #include "FilePicker.h"
 
@@ -32,4 +34,8 @@ public:
 
     void Description() override;
     void ProcessInternal() override;
+
+    // const ImageData& GetImageData() const { return output_image; }
+    // void SetImageData(const ImageData& image) { output_image = image; }
+    bool ImageLoaded = false;
 };

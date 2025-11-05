@@ -24,6 +24,7 @@ void InputNode::NodeContent() {
     setStyle();
 
     static bool openPicker = false;
+    const int MAX_SIZE = 2048; // 2K maximum
 
     if (openPicker) {
         filePicker.ShowFileDialog(&openPicker);
@@ -32,27 +33,75 @@ void InputNode::NodeContent() {
         if (m_image_data) { stbi_image_free(m_image_data); m_image_data = nullptr; }
 
         if (filePicker.GetSelectedFile()) {
-            int width = 0, height = 0, og_chans = 0;
-            m_image_data = stbi_load(filePicker.selected_file, &width, &height, &og_chans, 0);
+            int original_width = 0, original_height = 0, og_chans = 0;
+            unsigned char* original_data = stbi_load(filePicker.selected_file, &original_width, &original_height, &og_chans, 0);
 
-            // if image data was loaded successfully
-            if (m_image_data)
-            {
-                // Store dimensions for later use
-                m_tex_w = width;
-                m_tex_h = height;
+            if (original_data) {
+                int final_width = original_width;
+                int final_height = original_height;
+                unsigned char* final_data = original_data;
+
+                // Check if we need to resize (cap at 2K)
+                if (original_width > MAX_SIZE || original_height > MAX_SIZE) {
+                    // Calculate new dimensions while maintaining aspect ratio
+                    float scale = std::min((float)MAX_SIZE / original_width, (float)MAX_SIZE / original_height);
+                    final_width = (int)(original_width * scale);
+                    final_height = (int)(original_height * scale);
+
+                    // Allocate memory for resized image
+                    int final_size = final_width * final_height * og_chans;
+                    m_image_data = (unsigned char*)malloc(final_size);
+
+                    if (m_image_data) {
+                        // Resize the image
+                        if (stbir_resize_uint8_linear(
+                            original_data, original_width, original_height, 0,
+                            m_image_data, final_width, final_height, 0,
+                            (stbir_pixel_layout)og_chans)) {
+                            
+                            final_data = m_image_data;
+                        } else {
+                            // Resize failed, use original
+                            free(m_image_data);
+                            m_image_data = original_data;
+                            final_width = original_width;
+                            final_height = original_height;
+                            final_data = original_data;
+                        }
+                    } else {
+                        // Malloc failed, use original
+                        m_image_data = original_data;
+                        final_width = original_width;
+                        final_height = original_height;
+                        final_data = original_data;
+                    }
+                    
+                    // Free original data if we resized successfully
+                    if (final_data != original_data) {
+                        stbi_image_free(original_data);
+                    }
+                } else {
+                    // No resize needed
+                    m_image_data = original_data;
+                }
+
+                // Store final dimensions
+                m_tex_w = final_width;
+                m_tex_h = final_height;
                 
+                // Create SDL texture
                 SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(
-                    (void*)m_image_data, width, height, og_chans * 8, og_chans * width, 
+                    (void*)final_data, final_width, final_height, og_chans * 8, og_chans * final_width, 
                     0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
                 m_texture = SDL_CreateTextureFromSurface(m_renderer, surface);
                 SDL_FreeSurface(surface);
                 
-                // Update output_image immediately
-                output_image.width = width;
-                output_image.height = height;
+                // Update output_image
+                output_image.width = final_width;
+                output_image.height = final_height;
                 output_image.channels = og_chans;
-                output_image.pixels.assign(m_image_data, m_image_data + width * height * og_chans);
+                output_image.pixels.assign(final_data, final_data + final_width * final_height * og_chans);
+                ImageLoaded = true;
             }
         }
     }
