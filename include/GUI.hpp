@@ -15,6 +15,8 @@
 
 #include "node/NodeMenu.hpp"
 
+#include "stb_image.h"
+
 #include "WebSocketClient.hpp"
 
 class GUI {
@@ -22,6 +24,15 @@ private:
     SDL_Window* m_window;
     SDL_Renderer* m_renderer;
     bool m_initialized;
+
+    // cursor related
+    std::unordered_map<std::string, ImVec2> remoteMousePositions;
+    SDL_Texture* cursor_texture = nullptr;
+    int cursor_width = 0;
+    int cursor_height = 0;
+
+    // websocket
+    WebSocketClient* wsClient = nullptr;
 
     // nodes related
     std::vector<std::unique_ptr<NodeBase>> n_nodes;
@@ -32,8 +43,11 @@ private:
     std::unordered_set<int> selected_links;
 
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar 
-    | ImGuiWindowFlags_NoCollapse
-    | ImGuiWindowFlags_MenuBar;
+        | ImGuiWindowFlags_NoCollapse
+        | ImGuiWindowFlags_MenuBar;
+
+    void initialOption();
+    std::string generate_unique_code();
 
 public:
     GUI(SDL_Window* window, SDL_Renderer* renderer);
@@ -62,6 +76,9 @@ public:
     std::unordered_set<int> death_node;
     std::unordered_set<int> death_link;
 
-    static std::string generate_unique_code();
-    static std::string unique_code;
+    std::string unique_code;
+
+    int ConnectAndCreateSession(std::string route, std::string roomID);
+    int ConnectAndJoinSession(std::string route, std::string roomID);
+    void InitializeCallbacks();
 };

@@ -7,6 +7,10 @@ include(FetchContent)
 set(BUILD_SHARED_LIBS OFF)
 set(SDL_STATIC ON)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 # Fetch SDL2
 FetchContent_Declare(
     SDL2
@@ -95,18 +99,27 @@ target_include_directories(photoGraph PRIVATE
 )
 
 if (WIN32)
+    find_package(ZLIB REQUIRED)
     target_link_libraries(photoGraph PRIVATE gdiplus)
 endif()
 
 # Define IMGUI_DEFINE_MATH_OPERATORS to fix ImNodes build issue
 target_compile_definitions(photoGraph PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
 
-# Link against SDL2
-target_link_libraries(photoGraph PRIVATE 
-    SDL2::SDL2-static
-    SDL2::SDL2main
-    ixwebsocket
-)
+if (WIN32)
+    target_link_libraries(photoGraph PRIVATE 
+        SDL2::SDL2-static
+        SDL2::SDL2main
+        ixwebsocket
+        ZLIB::ZLIB
+    )
+else()
+    target_link_libraries(photoGraph PRIVATE 
+        SDL2::SDL2-static
+        SDL2::SDL2main
+        ixwebsocket
+    )
+endif()
 
 target_precompile_headers(photoGraph PRIVATE
     <SDL.h>

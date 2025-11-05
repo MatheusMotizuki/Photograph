@@ -3,16 +3,20 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#define STB_IMAGE_RESIZE2_IMPLEMENTATION
+#include "stb_image_resize2.h"
+
 #include <random>
 #include <string>
 #include <cstring>
 
 // function prototypes
-int ConnectAndCreateSession(std::string route, std::string roomID);
-int ConnectAndJoinSession(std::string route, std::string roomID);
+SDL_Texture* LoadCursorImage(SDL_Renderer* renderer, const char* filename, int& out_width, int& out_height);
 
-WebSocketClient* g_wsClient = nullptr;
-std::string GUI::unique_code = "";
+// cursor related
+int cursor_width = 0;
+int cursor_height = 0;
+SDL_Texture* cursor_texture = nullptr;
 
 GUI::GUI(SDL_Window* window, SDL_Renderer* renderer)
     : m_window(window)
@@ -138,7 +142,7 @@ void GUI::popStyle()
     ImNodes::PopColorStyle(); // BoxSelectorOutline
 }
 
-void initialOption()
+void GUI::initialOption()
 {
     static bool first_frame = true;
     static int session_state = 0; // 0 = menu, 1 = show code, 2 = joining
@@ -189,7 +193,7 @@ void initialOption()
             if (ImGui::Button("Join Session", ImVec2(250, 40)))
             {
                 std::cout << "Joining session: " << session_code << std::endl;
-                ConnectAndJoinSession("ws://localhost:58058/ws", session_code);
+                this->ConnectAndJoinSession("ws://localhost:58058/ws", session_code);
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndDisabled();
@@ -217,8 +221,7 @@ void initialOption()
 
             if (ImGui::Button("Start Session", ImVec2(250, 40)))
             {
-                std::cout << "Starting session with code: " << GUI::unique_code << std::endl;
-                ConnectAndCreateSession("ws://localhost:58058/ws", GUI::unique_code);
+                this->ConnectAndCreateSession("ws://localhost:58058/ws", GUI::unique_code);
                 ImGui::CloseCurrentPopup();
                 session_state = 0; // Reset for next time
             }
@@ -239,6 +242,68 @@ void initialOption()
     ImGui::PopStyleVar(2);
 }
 
+void GUI::InitializeCallbacks() {
+    if (wsClient) {
+        wsClient->setNodeCreatedCallback([this](int node_id, int node_type, ImVec2 pos) {
+            std::unique_ptr<NodeBase> node = NodeMenu().CreateNode(static_cast<NodeMenu::NodeType>(node_type), m_renderer);
+            if (node) {
+                ImNodes::SetNodeScreenSpacePos(node->GetId(), pos);
+                n_nodes.push_back(std::move(node));
+            }
+        });
+
+        wsClient->setLinkCreatedCallback([this](int link_id, int start_attr, int end_attr) {
+            n_links.push_back({link_id, start_attr, end_attr});
+        });
+
+        wsClient->setMouseMovedCallback([this](const std::string& sender, ImVec2 pos) {
+            remoteMousePositions[sender] = pos;
+        });
+
+        wsClient->setSelectedNodeCallback([this](int node_id, ImVec2 pos) {
+            selected_nodes.insert(node_id);
+            ImNodes::SetNodeScreenSpacePos(node_id, pos);
+        });
+
+        wsClient->setNodeDeletedCallback([this](int node_id) {
+            n_nodes.erase(
+                std::remove_if(n_nodes.begin(), n_nodes.end(),
+                    [node_id](const std::unique_ptr<NodeBase>& node){
+                        return node->GetId() == node_id;
+                    }),
+                n_nodes.end()
+            );
+        });
+
+        wsClient->setLinkDeletedCallback([this](int link_id) {
+            n_links.erase(
+                std::remove_if(n_links.begin(), n_links.end(),
+                    [link_id](const Link& link){
+                        return link.id == link_id;
+                    }),
+                n_links.end()
+            );
+        });
+
+        wsClient->setImageUploadCallback([this](const std::string& room, std::vector<uint8_t> pixels, int width, int height, int channels) {
+            // Set the image in the InputNode and update its data
+            for (auto& node : n_nodes) {
+                if (auto* inputNode = dynamic_cast<InputNode*>(node.get())) {
+                    inputNode->output_image.width = width;
+                    inputNode->output_image.height = height;
+                    inputNode->output_image.channels = channels;
+                    inputNode->output_image.pixels = pixels;
+                    inputNode->SetImageData(inputNode->output_image);
+                    // inputNode->ImageLoaded = true; // Optionally trigger a refresh
+                    // You may want to update the SDL_Texture as well
+                }
+            }
+            // Optionally, log or display a message
+            std::cout << "Received image upload for room: " << room << " (" << width << "x" << height << ")" << std::endl;
+        });
+    }
+}
+
 void GUI::newFrame()
 {
     ImGui_ImplSDLRenderer2_NewFrame();
@@ -246,6 +311,10 @@ void GUI::newFrame()
     ImGui::NewFrame();
 
     initialOption();
+
+    // this will be executed regardless of the 
+    // connection state of the user, but it will 
+    // only work if it is connected to the server
 
     // Dockspace setup
     ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -281,11 +350,19 @@ void GUI::newFrame()
         std::unique_ptr<NodeBase> node = Menu.CreateNode(Menu.GetNodeType(), m_renderer);
         if (node) {
             ImNodes::SetNodeScreenSpacePos(node->GetId(), position);
+            if (wsClient) wsClient->newNode(GUI::unique_code, node->GetId(), position, static_cast<int>(Menu.GetNodeType()));
             n_nodes.push_back(std::move(node));
-            // upon node creation send to server information about the node, the ID and the position
-            // SendNodeToServer(node->GetId(), Menu.GetNodeType(), position);
-            if (g_wsClient) g_wsClient->newNode(GUI::unique_code, node->GetId(), Menu.GetNodeType(), position);
         }
+    }
+    
+    if (wsClient) {
+        wsClient->setNodeCreatedCallback([this](int node_id, int node_type, ImVec2 pos) {
+            std::unique_ptr<NodeBase> node = NodeMenu().CreateNode(static_cast<NodeMenu::NodeType>(node_type), m_renderer);
+            if (node) {
+                ImNodes::SetNodeScreenSpacePos(node->GetId(), pos);
+                n_nodes.push_back(std::move(node));
+            }
+        });
     }
 
     // ========== Draw Nodes ==========
@@ -296,12 +373,17 @@ void GUI::newFrame()
         node->Draw();
         
         if (ImNodes::IsNodeSelected(node->GetId())) {
+            if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+                int id = node->GetId();
+                ImVec2 pos = ImNodes::GetNodeScreenSpacePos(id);
+                if (wsClient) wsClient->sendSelectedNode(GUI::unique_code, id, pos);
+            }
             selected_nodes.insert(node->GetId());
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Right, false)) {
                 ImGui::OpenPopup((node->GetInternalTitle() + "_" + std::to_string(node->GetId())).c_str());
             }
         }
-        
+
         node->Description();
     }
 
@@ -321,29 +403,29 @@ void GUI::newFrame()
     // ========== Server/Client communication ==========
 
     // this will only work when connected to a server
-    if (g_wsClient){
+    if (wsClient){
         static ImVec2 prevMousePos = ImVec2(-1.0f, -1.0f);
         ImVec2 mousePos = ImGui::GetMousePos();
 
         if ((mousePos.x != prevMousePos.x || mousePos.y != prevMousePos.y) &&
             ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_AllowWhenBlockedByPopup)) {
             prevMousePos = mousePos;
-            g_wsClient->sendMouse(GUI::unique_code, mousePos);
+            wsClient->sendMouse(GUI::unique_code, mousePos);
         }
 
-        // Draw all remote cursors
-        const auto remoteCursors = g_wsClient->getAllRemoteMousePositions();
-        for (const auto& [userId, remotePos] : remoteCursors) {
-            if (remotePos.x >= 0 && remotePos.y >= 0 && 
-                std::isfinite(remotePos.x) && std::isfinite(remotePos.y)) {
-                ImGui::SetNextWindowPos({remotePos.x + 20, remotePos.y + 10}, ImGuiCond_Always);
-                ImGui::Begin(("Remote##" + userId).c_str(), nullptr, 
-                    ImGuiWindowFlags_AlwaysAutoResize | 
-                    ImGuiWindowFlags_NoCollapse | 
-                    ImGuiWindowFlags_NoTitleBar | 
-                    ImGuiWindowFlags_Tooltip);
-                ImGui::Text("%s", userId.c_str());
-                ImGui::End();
+        // Load cursor image once
+        if (!cursor_texture) {
+            cursor_texture = LoadCursorImage(m_renderer, "assets/images/triangle.png", cursor_width, cursor_height);
+        }
+
+        // Draw all remote cursors as images
+        for (const auto& [userId, remotePos] : remoteMousePositions) {
+            if (remotePos.x >= 0 && remotePos.y >= 0) {
+                ImGui::GetForegroundDrawList()->AddImage(
+                    (ImTextureID)cursor_texture,
+                    ImVec2(remotePos.x, remotePos.y),
+                    ImVec2(remotePos.x + cursor_width, remotePos.y + cursor_height)
+                );
             }
         }
     }
@@ -358,7 +440,7 @@ void GUI::newFrame()
         }
         return nullptr;
     };
-
+    
     // Handle Link Creation
     int start_attr, end_attr;
     bool snap_create = true;
@@ -383,6 +465,7 @@ void GUI::newFrame()
         link.end_attr = end_attr;
         n_links.push_back(link);
         // send to the server the information about link creation
+        if (wsClient) wsClient->newLink(GUI::unique_code, link.id, link.init_attr, link.end_attr);
     }
 
     int dropped_attr;
@@ -411,18 +494,18 @@ void GUI::newFrame()
                 clearPreview(node.get());
             }
         }
-        // send to the server this also, abou link drop
     }
 
     // Handle Link Destruction
     int link_id;
     if (ImNodes::IsLinkDestroyed(&link_id)) {
         // Remove the destroyed link
+        if (wsClient) wsClient->sendDeadLink(GUI::unique_code, link_id);
+
         n_links.erase(
             std::remove_if(n_links.begin(), n_links.end(),
                 [link_id](const Link& link) { return link.id == link_id; }),
             n_links.end()
-            // send to server the link deletion
         );
     }
 
@@ -430,6 +513,16 @@ void GUI::newFrame()
     // First pass: process all nodes with their current input
     for (auto& node : n_nodes) {
         node->Process();
+
+        if (auto* inputNode = dynamic_cast<InputNode*>(node.get())) {
+            if (inputNode->ImageLoaded) {
+                const ImageData& img = inputNode->GetImageData();
+                wsClient->sendImage(GUI::unique_code, img.pixels, img.width, img.height, img.channels);
+                inputNode->ImageLoaded = false;
+
+                inputNode->SetImageData(img);
+            }
+        }
     }
 
     // Second pass: propagate data through links
@@ -454,8 +547,6 @@ void GUI::newFrame()
         for (int link_id : selected_links) {
             death_link.insert(link_id);
         }
-
-        // send to server both, ig?
     }
 
     // Delete nodes and their connected links
@@ -535,9 +626,13 @@ void GUI::render()
 inline void GUI::certainDeathNode(std::vector<std::unique_ptr<NodeBase>>& n_nodes, const std::unordered_set<int>& death_node) {
     n_nodes.erase(
         std::remove_if(n_nodes.begin(), n_nodes.end(),
-            [&death_node](const std::unique_ptr<NodeBase>& node){
+            [this, &death_node](const std::unique_ptr<NodeBase>& node){
                 // Only remove if node is marked for deletion AND is deletable
-                return death_node.count(node->GetId()) > 0 && node->IsDeletable();
+                if (node->IsDeletable() && death_node.count(node->GetId()) > 0) {
+                    if (wsClient) wsClient->sendDeadNode(GUI::unique_code, node->GetId());
+                    return true;
+                }
+                return false;
             }),
         n_nodes.end()
     );
@@ -546,7 +641,7 @@ inline void GUI::certainDeathNode(std::vector<std::unique_ptr<NodeBase>>& n_node
 inline void GUI::certainDeathLink(std::vector<Link>& n_links, std::unordered_set<int>& death_link){
     n_links.erase(
         std::remove_if(n_links.begin(), n_links.end(),
-        [&death_link](const Link& link) {
+        [this, &death_link](const Link& link) {
             return death_link.count(link.id) > 0;
         }),
     n_links.end());
@@ -568,20 +663,40 @@ std::string GUI::generate_unique_code() {
     return gen_part(4) + "-" + gen_part(5);
 }
 
-int ConnectAndCreateSession(std::string route, std::string roomID) {
-    if (!g_wsClient) {
-        g_wsClient = new WebSocketClient(route);
-        g_wsClient->create(roomID);
+int GUI::ConnectAndCreateSession(std::string route, std::string roomID) {
+    if (!wsClient) {
+        wsClient = new WebSocketClient(route);
+        wsClient->create(roomID);
+        this->InitializeCallbacks();
     }
     GUI::unique_code = roomID;
     return 0;
 }
 
-int ConnectAndJoinSession(std::string route, std::string roomID) {
-    if (!g_wsClient) {
-        g_wsClient = new WebSocketClient(route);
-        g_wsClient->join(roomID);
+int GUI::ConnectAndJoinSession(std::string route, std::string roomID) {
+    if (!wsClient) {
+        wsClient = new WebSocketClient(route);
+        wsClient->join(roomID);
+        this->InitializeCallbacks();
     }
     GUI::unique_code = roomID;
     return 0;
+}
+
+SDL_Texture* LoadCursorImage(SDL_Renderer* renderer, const char* filename, int& out_width, int& out_height) {
+    int width, height, channels;
+    unsigned char* data = stbi_load(filename, &width, &height, &channels, 4); // Force RGBA
+    if (!data) return nullptr;
+
+    SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormatFrom(
+        data, width, height, 32, width * 4, SDL_PIXELFORMAT_RGBA32);
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+
+    out_width = width;
+    out_height = height;
+
+    SDL_FreeSurface(surface);
+    stbi_image_free(data);
+
+    return texture;
 }

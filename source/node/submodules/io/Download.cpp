@@ -46,14 +46,16 @@ void DownloadNode::NodeContent() {
     if (ImGui::Button("Download image", ImVec2(200, 30))) { 
         if (has_valid_input) {
             // Use stb_image_write to save the image as PNG
-            std::string filename = "output_image.png";
-            int success = stbi_write_png(
+            std::string filename = "output_image.jpg";
+            int quality = 90;
+            std::cout << input_image.width * input_image.channels << std::endl;
+            int success = stbi_write_jpg(
                 filename.c_str(),
                 input_image.width,
                 input_image.height,
                 input_image.channels,
                 input_image.pixels.data(),
-                input_image.width * input_image.channels
+                quality
             );
             if (success) {
                 std::cout << "Image downloaded to " << filename << std::endl;
