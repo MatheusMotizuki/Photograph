@@ -1,5 +1,8 @@
 #include "node/submodules/io/Input.hpp"
 
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "stb_image_resize2.h"
+
 #include <emscripten.h>
 #include <emscripten/html5.h>
 
@@ -81,8 +84,45 @@ void InputNode::LoadImageFromMemory(unsigned char* data, int width, int height, 
     if (m_image_data) {
         stbi_image_free(m_image_data);
     }
-    m_image_data = data;
-    CreateTextureFromData(data, width, height, channels);
+    
+    // Define maximum dimensions (use 1080p for better WASM compatibility)
+    const int MAX_DIMENSION = 1920; // 1080p width
+    const int MAX_HEIGHT = 1080;
+    
+    // Check if resizing is needed
+    if (width > MAX_DIMENSION || height > MAX_HEIGHT) {
+        float scale_w = (float)MAX_DIMENSION / width;
+        float scale_h = (float)MAX_HEIGHT / height;
+        float scale = std::min(scale_w, scale_h);
+        
+        int new_width = (int)(width * scale);
+        int new_height = (int)(height * scale);
+        
+        // Allocate memory for resized image
+        unsigned char* resized_data = (unsigned char*)malloc(new_width * new_height * channels);
+        
+        if (resized_data) {
+            // Use stb_image_resize2 to resize the image
+            stbir_resize_uint8_srgb(
+                data, width, height, 0,
+                resized_data, new_width, new_height, 0,
+                STBIR_RGBA // Use STBIR_RGBA for 4 channels
+            );
+            
+            // Free original data and use resized data
+            stbi_image_free(data);
+            m_image_data = resized_data;
+            CreateTextureFromData(resized_data, new_width, new_height, channels);
+        } else {
+            // Fallback: use original if resize fails
+            m_image_data = data;
+            CreateTextureFromData(data, width, height, channels);
+        }
+    } else {
+        m_image_data = data;
+        CreateTextureFromData(data, width, height, channels);
+    }
+    
     ProcessInternal();
 }
 

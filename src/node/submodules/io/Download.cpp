@@ -88,45 +88,38 @@ void DownloadNode::NodeContent() {
     
     if (ImGui::Button("Download image", ImVec2(200, 30))) { 
         if (has_valid_input) {
-                // Browser-based download using JavaScript
-                // First, encode the image to PNG in memory
-                int png_size = 0;
-                unsigned char* png_data = stbi_write_png_to_mem(
-                    input_image.pixels.data(),
-                    input_image.width * input_image.channels,
-                    input_image.width,
-                    input_image.height,
-                    input_image.channels,
-                    &png_size
-                );
+            // Browser-based download using JavaScript
+            // Encode the image to PNG in memory
+            int png_size = 0;
+            unsigned char* png_data = stbi_write_png_to_mem(
+                input_image.pixels.data(),
+                input_image.width * input_image.channels,
+                input_image.width,
+                input_image.height,
+                input_image.channels,
+                &png_size
+            );
+            
+            if (png_data && png_size > 0) {
+                // Use EM_ASM to trigger download in browser
+                EM_ASM({
+                    var pngData = new Uint8Array(HEAPU8.buffer, $0, $1);
+                    var blob = new Blob([pngData], { type: 'image/png' });
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'processed_image.png';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, png_data, png_size);
                 
-                if (png_data && png_size > 0) {
-                    // Use EM_ASM to trigger download in browser
-                    EM_ASM({
-                        // Get the PNG data from WASM memory
-                        var pngData = new Uint8Array(HEAPU8.buffer, $0, $1);
-                        
-                        // Create a blob from the data
-                        var blob = new Blob([pngData], { type: 'image/png' });
-                        
-                        // Create a download link
-                        var url = URL.createObjectURL(blob);
-                        var a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'processed_image.png';
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                    }, png_data, png_size);
-                    
-                    // Free the PNG data
-                    STBIW_FREE(png_data);
-                    
-                    std::cout << "Image download started (browser)" << std::endl;
-                } else {
-                    std::cerr << "Failed to encode image to PNG." << std::endl;
-                }
+                STBIW_FREE(png_data);
+                std::cout << "Image download started (browser)" << std::endl;
+            } else {
+                std::cerr << "Failed to encode image to PNG." << std::endl;
+            }
         }
     }
     
