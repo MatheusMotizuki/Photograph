@@ -52,17 +52,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(ixwebsocket)
 
-set(CURL_USE_STATIC_LIBS ON)
-find_package(CURL REQUIRED)
-
-# Fetch curlpp
 FetchContent_Declare(
-    curlpp
-    GIT_REPOSITORY https://github.com/jpbarrette/curlpp.git
-    GIT_TAG master
+    cpr
+    GIT_REPOSITORY https://github.com/libcpr/cpr.git
+    GIT_TAG 1.11.0
     GIT_SHALLOW TRUE
 )
-FetchContent_MakeAvailable(curlpp)
+FetchContent_MakeAvailable(cpr)
 
 # Find OpenCV (system installation)
 find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs)
@@ -110,39 +106,31 @@ target_include_directories(photoGraph PRIVATE
     ${imgui_SOURCE_DIR}/backends
     ${imnodes_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${curlpp_SOURCE_DIR}/src
-    ${CURL_INCLUDE_DIRS}
     ${OpenCV_INCLUDE_DIRS}
 )
 
 if (WIN32)
+    # Windows-specific configuration
     find_package(ZLIB REQUIRED)
-    target_link_libraries(photoGraph PRIVATE gdiplus)
+    target_link_libraries(photoGraph PRIVATE gdiplus ZLIB::ZLIB)
+else()
+    # Linux needs curlpp include paths
+    target_include_directories(photoGraph PRIVATE
+        ${curlpp_SOURCE_DIR}/src
+        ${CURL_INCLUDE_DIRS}
+    )
 endif()
 
 # Define IMGUI_DEFINE_MATH_OPERATORS to fix ImNodes build issue
 target_compile_definitions(photoGraph PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
 
-if (WIN32)
-    target_link_libraries(photoGraph PRIVATE 
-        SDL2::SDL2-static
-        SDL2::SDL2main
-        ixwebsocket
-        ZLIB::ZLIB
-        CURL::libcurl
-        curlpp
-        ${OpenCV_LIBS}
-    )
-else()
-    target_link_libraries(photoGraph PRIVATE 
-        SDL2::SDL2-static
-        SDL2::SDL2main
-        ixwebsocket
-        CURL::libcurl
-        curlpp
-        ${OpenCV_LIBS}
-    )
-endif()
+target_link_libraries(photoGraph PRIVATE 
+    SDL2::SDL2-static
+    SDL2::SDL2main
+    ixwebsocket
+    cpr::cpr
+    ${OpenCV_LIBS}
+)
 
 target_precompile_headers(photoGraph PRIVATE
     <SDL.h>

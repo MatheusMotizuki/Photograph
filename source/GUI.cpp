@@ -6,6 +6,8 @@
 #define STB_IMAGE_RESIZE2_IMPLEMENTATION
 #include "stb_image_resize2.h"
 
+#include <cpr/cpr.h>
+
 #include <random>
 #include <string>
 #include <cstring>
@@ -306,17 +308,16 @@ void GUI::newFrame()
         std::lock_guard<std::mutex> lock(m_pendingImagesMtx);
         for (const auto& pending : m_pendingImages) {
             try {
-                curlpp::Cleanup myCleanup;
-                curlpp::Easy request;
-
                 std::string download_url = "http://localhost:58058/download/" + pending.id + "/" + GUI::unique_code;
-                request.setOpt(curlpp::options::Url(download_url));
 
-                std::ostringstream response_stream;
-                request.setOpt(curlpp::options::WriteStream(&response_stream));
-                request.perform();
-                std::string image_data = response_stream.str();
+                cpr::Response response = cpr::Get(cpr::Url{download_url});
+                
+                if (response.status_code != 200) {
+                    std::cerr << "Image download failed with status: " << response.status_code << std::endl;
+                    continue;
+                }
 
+                std::string image_data = response.text;
                 int img_width = 0, img_height = 0, img_channels = 0;
                 unsigned char* img_pixels = stbi_load_from_memory(
                     reinterpret_cast<const unsigned char*>(image_data.data()),
@@ -442,8 +443,6 @@ void GUI::newFrame()
             ImNodes::SetNodeScreenSpacePos(node->GetId(), position);
             if (wsClient) wsClient->newNode(GUI::unique_code, node->GetId(), position, static_cast<int>(Menu.GetNodeType()));
             n_nodes.push_back(std::move(node));
-            // upon node creation send to server information about the node, the ID and the position
-            // SendNodeToServer(node->GetId(), Menu.GetNodeType(), position);
         }
     }
     
@@ -524,45 +523,6 @@ void GUI::newFrame()
     }
 
     // ========== IMPORTANT: Handle Link Creation/Destruction AFTER EndNodeEditor() ==========
-
-    // Collect all information
-    // and send to ws server
-    // if(!g_wsClient) { // change this to true
-    //     if (ImNodes::NumSelectedNodes() > 0) {
-    //         std::vector<int> selected_ids(ImNodes::NumSelectedNodes());
-    //         ImNodes::GetSelectedNodes(selected_ids.data());
-    //         for (int node_id : selected_ids) {
-    //             selected_nodes.insert(node_id);
-    //             std::cout << "Selected node: " << node_id << std::endl;
-    //         }
-    //     }
-
-    //     // Print mouse position whenever inside the main window
-    //     if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
-    //         ImVec2 mousePos = ImGui::GetMousePos();
-    //         std::cout << "Mouse Position: (" << mousePos.x << ", " << mousePos.y << ")" << std::endl;
-    //         // Move this inside an ImGui window to display
-    //         ImGui::Begin("##mouse imformation", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_Tooltip);
-    //         ImGui::Text("someone");
-    //         ImGui::End();
-    //     }
-    // }
-
-    if (g_wsClient){
-        // Print mouse position whenever inside the main window
-        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
-            ImVec2 mousePos = ImGui::GetMousePos();
-            g_wsClient->sendMouse(GUI::unique_code, mousePos);
-        }
-
-        ImVec2 remotePos = g_wsClient->getRemoteMousePos();
-        if (remotePos.x >= 0 && remotePos.y >= 0 && std::isfinite(remotePos.x) && std::isfinite(remotePos.y)) {
-            ImGui::SetNextWindowPos(remotePos, ImGuiCond_Always);
-            ImGui::Begin("Remote Mouse", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_Tooltip);
-            ImGui::Text("Remote user");
-            ImGui::End();
-        }
-    }
     
     // Helper Lambda
     auto findNodeByAttr = [&](int attr_id) -> NodeBase* {
@@ -626,7 +586,6 @@ void GUI::newFrame()
                 clearPreview(node.get());
             }
         }
-        // send to the server this also, abou link drop
     }
 
     // Handle Link Destruction
@@ -639,7 +598,6 @@ void GUI::newFrame()
             std::remove_if(n_links.begin(), n_links.end(),
                 [link_id](const Link& link) { return link.id == link_id; }),
             n_links.end()
-            // send to server the link deletion
         );
     }
 
@@ -682,8 +640,6 @@ void GUI::newFrame()
         for (int link_id : selected_links) {
             death_link.insert(link_id);
         }
-
-        // send to server both, ig?
     }
 
     // Delete nodes and their connected links
