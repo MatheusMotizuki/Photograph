@@ -11,12 +11,20 @@
 #include <cstring>
 
 // function prototypes
+<<<<<<< Updated upstream
 SDL_Texture* LoadCursorImage(SDL_Renderer* renderer, const char* filename, int& out_width, int& out_height);
 
 // cursor related
 int cursor_width = 0;
 int cursor_height = 0;
 SDL_Texture* cursor_texture = nullptr;
+=======
+int ConnectAndCreateSession(std::string route, std::string roomID);
+int ConnectAndJoinSession(std::string route, std::string roomID);
+
+WebSocketClient* g_wsClient = nullptr;
+std::string GUI::unique_code = "";
+>>>>>>> Stashed changes
 
 GUI::GUI(SDL_Window* window, SDL_Renderer* renderer)
     : m_window(window)
@@ -193,7 +201,11 @@ void GUI::initialOption()
             if (ImGui::Button("Join Session", ImVec2(250, 40)))
             {
                 std::cout << "Joining session: " << session_code << std::endl;
+<<<<<<< Updated upstream
                 this->ConnectAndJoinSession("ws://localhost:58058/ws", session_code);
+=======
+                ConnectAndJoinSession("ws://localhost:58058/ws", session_code);
+>>>>>>> Stashed changes
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndDisabled();
@@ -221,7 +233,12 @@ void GUI::initialOption()
 
             if (ImGui::Button("Start Session", ImVec2(250, 40)))
             {
+<<<<<<< Updated upstream
                 this->ConnectAndCreateSession("ws://localhost:58058/ws", GUI::unique_code);
+=======
+                std::cout << "Starting session with code: " << GUI::unique_code << std::endl;
+                ConnectAndCreateSession("ws://localhost:58058/ws", GUI::unique_code);
+>>>>>>> Stashed changes
                 ImGui::CloseCurrentPopup();
                 session_state = 0; // Reset for next time
             }
@@ -442,6 +459,8 @@ void GUI::newFrame()
             ImNodes::SetNodeScreenSpacePos(node->GetId(), position);
             if (wsClient) wsClient->newNode(GUI::unique_code, node->GetId(), position, static_cast<int>(Menu.GetNodeType()));
             n_nodes.push_back(std::move(node));
+            // upon node creation send to server information about the node, the ID and the position
+            // SendNodeToServer(node->GetId(), Menu.GetNodeType(), position);
         }
     }
     
@@ -522,6 +541,45 @@ void GUI::newFrame()
     }
 
     // ========== IMPORTANT: Handle Link Creation/Destruction AFTER EndNodeEditor() ==========
+
+    // Collect all information
+    // and send to ws server
+    // if(!g_wsClient) { // change this to true
+    //     if (ImNodes::NumSelectedNodes() > 0) {
+    //         std::vector<int> selected_ids(ImNodes::NumSelectedNodes());
+    //         ImNodes::GetSelectedNodes(selected_ids.data());
+    //         for (int node_id : selected_ids) {
+    //             selected_nodes.insert(node_id);
+    //             std::cout << "Selected node: " << node_id << std::endl;
+    //         }
+    //     }
+
+    //     // Print mouse position whenever inside the main window
+    //     if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
+    //         ImVec2 mousePos = ImGui::GetMousePos();
+    //         std::cout << "Mouse Position: (" << mousePos.x << ", " << mousePos.y << ")" << std::endl;
+    //         // Move this inside an ImGui window to display
+    //         ImGui::Begin("##mouse imformation", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_Tooltip);
+    //         ImGui::Text("someone");
+    //         ImGui::End();
+    //     }
+    // }
+
+    if (g_wsClient){
+        // Print mouse position whenever inside the main window
+        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
+            ImVec2 mousePos = ImGui::GetMousePos();
+            g_wsClient->sendMouse(GUI::unique_code, mousePos);
+        }
+
+        ImVec2 remotePos = g_wsClient->getRemoteMousePos();
+        if (remotePos.x >= 0 && remotePos.y >= 0 && std::isfinite(remotePos.x) && std::isfinite(remotePos.y)) {
+            ImGui::SetNextWindowPos(remotePos, ImGuiCond_Always);
+            ImGui::Begin("Remote Mouse", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_Tooltip);
+            ImGui::Text("Remote user");
+            ImGui::End();
+        }
+    }
     
     // Helper Lambda
     auto findNodeByAttr = [&](int attr_id) -> NodeBase* {
@@ -556,7 +614,10 @@ void GUI::newFrame()
         link.end_attr = end_attr;
         n_links.push_back(link);
         // send to the server the information about link creation
+<<<<<<< Updated upstream
         if (wsClient) wsClient->newLink(GUI::unique_code, link.id, link.init_attr, link.end_attr);
+=======
+>>>>>>> Stashed changes
     }
 
     int dropped_attr;
@@ -585,6 +646,7 @@ void GUI::newFrame()
                 clearPreview(node.get());
             }
         }
+        // send to the server this also, abou link drop
     }
 
     // Handle Link Destruction
@@ -597,6 +659,7 @@ void GUI::newFrame()
             std::remove_if(n_links.begin(), n_links.end(),
                 [link_id](const Link& link) { return link.id == link_id; }),
             n_links.end()
+            // send to server the link deletion
         );
     }
 
@@ -639,6 +702,8 @@ void GUI::newFrame()
         for (int link_id : selected_links) {
             death_link.insert(link_id);
         }
+
+        // send to server both, ig?
     }
 
     // Delete nodes and their connected links
@@ -755,6 +820,7 @@ std::string GUI::generate_unique_code() {
     return gen_part(4) + "-" + gen_part(5);
 }
 
+<<<<<<< Updated upstream
 int GUI::ConnectAndCreateSession(std::string route, std::string roomID) {
     if (!wsClient) {
         wsClient = new WebSocketClient(route);
@@ -791,4 +857,20 @@ SDL_Texture* LoadCursorImage(SDL_Renderer* renderer, const char* filename, int& 
     stbi_image_free(data);
 
     return texture;
+=======
+int ConnectAndCreateSession(std::string route, std::string roomID) {
+    if (!g_wsClient) {
+        g_wsClient = new WebSocketClient(route);
+        g_wsClient->create(roomID);
+    }
+    return 0;
+}
+
+int ConnectAndJoinSession(std::string route, std::string roomID) {
+    if (!g_wsClient) {
+        g_wsClient = new WebSocketClient(route);
+        g_wsClient->join(roomID);
+    }
+    return 0;
+>>>>>>> Stashed changes
 }

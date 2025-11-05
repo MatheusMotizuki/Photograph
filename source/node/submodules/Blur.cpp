@@ -1,7 +1,8 @@
 #include "node/submodules/Blur.hpp"
+#include <opencv2/imgproc.hpp>
 
 BlurNode::BlurNode() : NodeBase("Blur Node", PinType::Both, "blur_node", true, ImVec4(1.0f, 0.37f, 0.0f, 1.0f)) {
-    SetProcessDelay(300.0f); // 300ms delay for blur (it's expensive)
+    SetProcessDelay(100.0f); // Reduced delay since OpenCV is much faster
 }
 BlurNode::~BlurNode() {}
 
@@ -22,11 +23,10 @@ void BlurNode::NodeContent() {
     setStyleSlider();
     ImGui::PushItemWidth(150);
     int prev_blur_amount = m_blur_amount;
-    ImGui::SliderInt("##blur_amount", &m_blur_amount, 0, 100, "Amount: %d");
+    ImGui::SliderInt("##blur_amount", &m_blur_amount, 0, 30, "Amount: %d");
     ImGui::PopItemWidth();
     popStyleSlider();
     
-    // Only mark for reprocess if values changed
     if (prev_blur_amount != m_blur_amount || prev_blur_type != m_blur_type) {
         MarkNeedsReprocess();
     }
@@ -66,46 +66,28 @@ void BlurNode::ProcessInternal() {
         return;
     }
     
-    int radius = std::max(1, m_blur_amount / 5); // Can use larger radius now
-    int width = output_image.width;
-    int height = output_image.height;
-    int channels = output_image.channels;
-    
     output_image = input_image;
     
-    // For each channel, compute integral image and apply box filter
-    for (int c = 0; c < channels; ++c) {
-        // Build integral image for this channel
-        std::vector<int> integral((width + 1) * (height + 1), 0);
-        
-        for (int y = 1; y <= height; ++y) {
-            for (int x = 1; x <= width; ++x) {
-                int pixel_val = input_image.pixels[((y-1) * width + (x-1)) * channels + c];
-                integral[y * (width + 1) + x] = pixel_val +
-                    integral[(y-1) * (width + 1) + x] +
-                    integral[y * (width + 1) + (x-1)] -
-                    integral[(y-1) * (width + 1) + (x-1)];
-            }
-        }
-        
-        // Apply box filter using integral image (O(1) per pixel!)
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-                int y1 = std::max(0, y - radius);
-                int y2 = std::min(height - 1, y + radius);
-                int x1 = std::max(0, x - radius);
-                int x2 = std::min(width - 1, x + radius);
-                
-                // Convert to integral image coordinates (1-indexed)
-                int sum = integral[(y2 + 1) * (width + 1) + (x2 + 1)] -
-                          integral[y1 * (width + 1) + (x2 + 1)] -
-                          integral[(y2 + 1) * (width + 1) + x1] +
-                          integral[y1 * (width + 1) + x1];
-                
-                int count = (y2 - y1 + 1) * (x2 - x1 + 1);
-                output_image.pixels[(y * width + x) * channels + c] = sum / count;
-            }
-        }
+    // Create OpenCV Mat from image data
+    cv::Mat img(output_image.height, output_image.width, 
+                output_image.channels == 4 ? CV_8UC4 : CV_8UC3, 
+                output_image.pixels.data());
+    
+    // Map blur amount to kernel size (must be odd)
+    int kernel_size = (m_blur_amount / 5) * 2 + 1;
+    kernel_size = std::max(3, std::min(kernel_size, 30)); // Clamp between 3 and 31
+    
+    // Apply appropriate blur using OpenCV (highly optimized with SIMD)
+    switch (m_blur_type) {
+        case 0: // Gaussian
+            cv::GaussianBlur(img, img, cv::Size(kernel_size, kernel_size), 0);
+            break;
+        case 1: // Box
+            cv::blur(img, img, cv::Size(kernel_size, kernel_size));
+            break;
+        case 2: // Median
+            cv::medianBlur(img, img, kernel_size);
+            break;
     }
 }
 

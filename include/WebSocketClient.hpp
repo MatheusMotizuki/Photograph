@@ -4,11 +4,15 @@
 #include "json.hpp"
 #include "imgui.h"
 #include "imnodes.h"
+<<<<<<< Updated upstream
 #include <mutex>
+=======
+>>>>>>> Stashed changes
 #include <string>
 #include <memory>
 #include <atomic>
 #include <iostream>
+<<<<<<< Updated upstream
 #include <functional>
 #include <unordered_map>
 
@@ -17,10 +21,13 @@
 #include <curlpp/Easy.hpp>
 
 #include "stb_image_write.h"
+=======
+>>>>>>> Stashed changes
 
 class WebSocketClient {
 public:
     enum class Action { None, Join, Create };
+<<<<<<< Updated upstream
 
     // Callback types
     using NodeCreatedCallback = std::function<void(int node_id, int node_type, ImVec2 pos)>;
@@ -39,10 +46,14 @@ public:
     void setNodeDeletedCallback(NodeDeletedCallback cb) { m_nodeDeletedCallback = std::move(cb); }
     void setLinkDeletedCallback(LinkDeletedCallback cb) { m_linkDeletedCallback = std::move(cb); }
     void setImageUploadCallback(ImageUploadCallback cb) { m_imageUploadCallback = std::move(cb); }
+=======
+    ImVec2 getRemoteMousePos() const { return m_remoteMousePos; }
+>>>>>>> Stashed changes
 
     explicit WebSocketClient(const std::string& url)
         : m_url(url), m_running(false), m_pendingAction(Action::None) {}
 
+<<<<<<< Updated upstream
     ~WebSocketClient() { disconnect(); }
 
     void join(const std::string& room) { this->setup(room, Action::Join); }
@@ -55,6 +66,25 @@ public:
     void sendDeadNode(const std::string& room, int nodeID) { deadNode(room, nodeID); }
     void sendDeadLink(const std::string& room, int linkID) { deadLink(room, linkID); }
     void sendImage(const std::string& room, std::vector<uint8_t> pixels, int width, int height, int channels) { imageInfo(room, pixels, width, height, channels); }
+=======
+    ~WebSocketClient() {
+        disconnect();
+    }
+
+    // Prepare to join a room
+    void join(const std::string& room) {
+        this->setup(room, Action::Join);
+    }
+
+    // Prepare to create a room
+    void create(const std::string& room) {
+        this->setup(room, Action::Create);
+    }
+
+    void sendMouse(std::string& room, ImVec2& cursor) {
+        this->info(room, cursor);
+    }
+>>>>>>> Stashed changes
 
     void disconnect() {
         if (!m_running.load()) return;
@@ -68,6 +98,7 @@ public:
     }
 
 private:
+<<<<<<< Updated upstream
     mutable std::mutex m_positionsMutex;
     std::unordered_map<std::string, ImVec2> m_remoteMousePositions;
 
@@ -78,6 +109,9 @@ private:
     NodeDeletedCallback m_nodeDeletedCallback;
     LinkDeletedCallback m_linkDeletedCallback;
     ImageUploadCallback m_imageUploadCallback;
+=======
+    ImVec2 m_remoteMousePos = ImVec2(-1, -1); // Default to invalid
+>>>>>>> Stashed changes
 
     void setup(const std::string& room, Action action) {
         if (m_running.load()) return;
@@ -88,11 +122,15 @@ private:
 
         m_webSocket->setOnMessageCallback([this](const ix::WebSocketMessagePtr& msg) {
             if (!msg) return;
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
             if (msg->type == ix::WebSocketMessageType::Open) {
                 if (!m_pendingRoom.empty()) {
                     nlohmann::json j;
                     j["room_id"] = m_pendingRoom;
+<<<<<<< Updated upstream
                     j["topic"] = (m_pendingAction == Action::Create) ? "room.create" : "room.join";
                     m_webSocket->send(j.dump());
                 }
@@ -158,17 +196,56 @@ private:
                         int height = (*data_ptr)[2].get<int>();
                         int channels = (*data_ptr)[3].get<int>();
                         if (m_imageUploadCallback) m_imageUploadCallback(url, width, height, channels);
+=======
+                    if (m_pendingAction == Action::Create) {
+                        j["topic"] = "room.create";
+                    } else if (m_pendingAction == Action::Join) {
+                        j["topic"] = "room.join";
+                    }
+                    std::cout << "Sending: " << j.dump() << std::endl;
+                    m_webSocket->send(j.dump());
+                }
+            }
+            if (msg->type == ix::WebSocketMessageType::Message) {
+                std::cout << "📩 Message received: " << msg->str << std::endl;
+                try {
+                    auto j = nlohmann::json::parse(msg->str);
+                    ImVec2 cursor{};
+                    if (j.contains("metadata")) {
+                        const auto& metadata = j["metadata"];
+                        if (metadata.contains("mousex") && metadata["mousex"].is_number()) {
+                            cursor.x = metadata["mousex"];
+                        }
+                        if (metadata.contains("mousey") && metadata["mousey"].is_number()) {
+                            cursor.y = metadata["mousey"];
+                        }
+                        m_remoteMousePos = cursor;
+                    } else if (j.contains("mousex") && j.contains("mousey") &&
+                            j["mousex"].is_number() && j["mousey"].is_number()) {
+                        cursor.x = j["mousex"];
+                        cursor.y = j["mousey"];
+                        m_remoteMousePos = cursor;
+                    } else {
+                        std::cout << "Received JSON: " << j.dump() << std::endl;
+>>>>>>> Stashed changes
                     }
                 } catch (const std::exception& e) {
                     std::cout << "⚠️ JSON parse error: " << e.what() << std::endl;
                 }
             }
+<<<<<<< Updated upstream
+=======
+            if (msg->type == ix::WebSocketMessageType::Error) {
+                std::cout << "❌ Error: " << msg->errorInfo.reason << std::endl;
+            }
+>>>>>>> Stashed changes
         });
 
         m_webSocket->start();
         m_running = true;
     }
 
+<<<<<<< Updated upstream
     void info(const std::string& room, const ImVec2& cursor) {
         if (!m_running.load() || !m_webSocket || room.empty()) return;
         nlohmann::json msg;
@@ -262,6 +339,27 @@ private:
         }
     }
 
+=======
+    // this will send information about the current node position
+    void info(std::string& room, ImVec2& cursor) {
+        if (!m_running.load()) return;
+        if (!m_webSocket) return;
+        if (room.empty()) return;
+
+        std::cout << "room id is: " << room << std::endl;
+
+        nlohmann::json msg;
+        msg["topic"] = "room.broadcast";
+        msg["room_id"] = room;
+        // metadata is a any, in the server so we can send anything
+        msg["metadata"] = {
+            {"mousex", cursor.x},
+            {"mousey", cursor.y}
+        };
+        m_webSocket->send(msg.dump());
+    }
+
+>>>>>>> Stashed changes
     std::string m_url;
     std::unique_ptr<ix::WebSocket> m_webSocket;
     std::atomic<bool> m_running;

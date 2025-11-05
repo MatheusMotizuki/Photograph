@@ -1,12 +1,13 @@
 #include "node/submodules/Brightness.hpp"
+#include <opencv2/core.hpp>
 
 BrightnessNode::BrightnessNode() : NodeBase("Brightness Node", PinType::Both, "brightness_node", true, ImVec4(0.6f, 0.4f, 0.9f, 1.0f)) {
-    SetProcessDelay(150.0f); // 150ms delay for brightness
+    SetProcessDelay(150.0f);
 }
 BrightnessNode::~BrightnessNode() {}
 
 unsigned int BrightnessNode::GetBorderColor() const {
-    return IM_COL32(153, 102, 230, 255); // Matches ImVec4(0.6f, 0.4f, 0.9f, 1.0f)
+    return IM_COL32(153, 102, 230, 255);
 }
 
 void BrightnessNode::NodeContent() {
@@ -25,7 +26,6 @@ void BrightnessNode::NodeContent() {
 
     ImGui::PopStyleColor(5);
     
-    // Only mark for reprocess if value changed
     if (prev_brightness != m_brightness_amount) {
         MarkNeedsReprocess();
     }
@@ -37,14 +37,15 @@ void BrightnessNode::ProcessInternal() {
     output_image = input_image;
     
     // Map 0-100 to -127 to +127
-    float brightness = (m_brightness_amount - 50) * 2.55f;
+    double brightness = (m_brightness_amount - 50) * 2.55;
     
-    // Optimized processing
-    size_t pixel_count = output_image.pixels.size();
-    for (size_t i = 0; i < pixel_count; ++i) {
-        int val = static_cast<int>(output_image.pixels[i]) + static_cast<int>(brightness);
-        output_image.pixels[i] = static_cast<unsigned char>(std::clamp(val, 0, 255));
-    }
+    // Create OpenCV Mat from image data
+    cv::Mat img(output_image.height, output_image.width, 
+                output_image.channels == 4 ? CV_8UC4 : CV_8UC3, 
+                output_image.pixels.data());
+    
+    // Add brightness using OpenCV (vectorized, SIMD-optimized)
+    img.convertTo(img, -1, 1.0, brightness);
 }
 
 void BrightnessNode::Description() {

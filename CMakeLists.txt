@@ -40,10 +40,9 @@ FetchContent_Declare(
     GIT_TAG v0.5
     GIT_SHALLOW TRUE
 )
-FetchContent_MakeAvailable(imnodes) # Explicitly populate imnodes to handle it specially
+FetchContent_MakeAvailable(imnodes)
 if(NOT imnodes_POPULATED)
     FetchContent_Populate(imnodes)
-    # We don't call add_subdirectory for imnodes because it doesn't have a CMakeLists.txt file
 endif()
 
 FetchContent_Declare(
@@ -53,6 +52,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(ixwebsocket)
 
+<<<<<<< Updated upstream
 set(CURL_USE_STATIC_LIBS ON)
 find_package(CURL REQUIRED)
 
@@ -65,6 +65,11 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(curlpp)
 
+# Find OpenCV (system installation)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs)
+
+=======
+>>>>>>> Stashed changes
 # Configure ImGui source files
 set(IMGUI_SOURCES
     ${imgui_SOURCE_DIR}/imgui.cpp
@@ -110,6 +115,7 @@ target_include_directories(photoGraph PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${curlpp_SOURCE_DIR}/src
     ${CURL_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
 )
 
 if (WIN32)
@@ -120,6 +126,7 @@ endif()
 # Define IMGUI_DEFINE_MATH_OPERATORS to fix ImNodes build issue
 target_compile_definitions(photoGraph PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
 
+<<<<<<< Updated upstream
 if (WIN32)
     target_link_libraries(photoGraph PRIVATE 
         SDL2::SDL2-static
@@ -128,6 +135,7 @@ if (WIN32)
         ZLIB::ZLIB
         CURL::libcurl
         curlpp
+        ${OpenCV_LIBS}
     )
 else()
     target_link_libraries(photoGraph PRIVATE 
@@ -136,8 +144,17 @@ else()
         ixwebsocket
         CURL::libcurl
         curlpp
+        ${OpenCV_LIBS}
     )
 endif()
+=======
+# Link against SDL2
+target_link_libraries(photoGraph PRIVATE 
+    SDL2::SDL2-static
+    SDL2::SDL2main
+    ixwebsocket
+)
+>>>>>>> Stashed changes
 
 target_precompile_headers(photoGraph PRIVATE
     <SDL.h>
