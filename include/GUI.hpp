@@ -15,11 +15,8 @@
 
 #include "node/NodeMenu.hpp"
 
-<<<<<<< Updated upstream
 #include "stb_image.h"
 
-=======
->>>>>>> Stashed changes
 #include "WebSocketClient.hpp"
 
 class GUI {
@@ -88,14 +85,9 @@ public:
     std::unordered_set<int> death_node;
     std::unordered_set<int> death_link;
 
-<<<<<<< Updated upstream
     std::string unique_code;
 
     int ConnectAndCreateSession(std::string route, std::string roomID);
     int ConnectAndJoinSession(std::string route, std::string roomID);
     void InitializeCallbacks();
-=======
-    static std::string generate_unique_code();
-    static std::string unique_code;
->>>>>>> Stashed changes
 };

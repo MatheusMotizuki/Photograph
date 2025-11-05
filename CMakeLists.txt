@@ -52,7 +52,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(ixwebsocket)
 
-<<<<<<< Updated upstream
 set(CURL_USE_STATIC_LIBS ON)
 find_package(CURL REQUIRED)
 
@@ -68,8 +67,6 @@ FetchContent_MakeAvailable(curlpp)
 # Find OpenCV (system installation)
 find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs)
 
-=======
->>>>>>> Stashed changes
 # Configure ImGui source files
 set(IMGUI_SOURCES
     ${imgui_SOURCE_DIR}/imgui.cpp
@@ -126,7 +123,6 @@ endif()
 # Define IMGUI_DEFINE_MATH_OPERATORS to fix ImNodes build issue
 target_compile_definitions(photoGraph PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
 
-<<<<<<< Updated upstream
 if (WIN32)
     target_link_libraries(photoGraph PRIVATE 
         SDL2::SDL2-static
@@ -147,14 +143,6 @@ else()
         ${OpenCV_LIBS}
     )
 endif()
-=======
-# Link against SDL2
-target_link_libraries(photoGraph PRIVATE 
-    SDL2::SDL2-static
-    SDL2::SDL2main
-    ixwebsocket
-)
->>>>>>> Stashed changes
 
 target_precompile_headers(photoGraph PRIVATE
     <SDL.h>
