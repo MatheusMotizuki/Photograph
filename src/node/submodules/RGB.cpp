@@ -14,11 +14,11 @@ void RGBNode::NodeContent() {
     
     int prev_r = m_r, prev_g = m_g, prev_b = m_b;
     
-    ImGui::SetNextItemWidth(80);
+    ImGui::SetNextItemWidth(128);
     ImGui::SliderInt("R", &m_r, -128, 128, "R %+d");
-    ImGui::SetNextItemWidth(80);
+    ImGui::SetNextItemWidth(128);
     ImGui::SliderInt("G", &m_g, -128, 128, "G %+d");
-    ImGui::SetNextItemWidth(80);
+    ImGui::SetNextItemWidth(128);
     ImGui::SliderInt("B", &m_b, -128, 128, "B %+d");
     
     ImGui::PopStyleVar(3);
