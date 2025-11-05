@@ -11,20 +11,12 @@
 #include <cstring>
 
 // function prototypes
-<<<<<<< Updated upstream
 SDL_Texture* LoadCursorImage(SDL_Renderer* renderer, const char* filename, int& out_width, int& out_height);
 
 // cursor related
 int cursor_width = 0;
 int cursor_height = 0;
 SDL_Texture* cursor_texture = nullptr;
-=======
-int ConnectAndCreateSession(std::string route, std::string roomID);
-int ConnectAndJoinSession(std::string route, std::string roomID);
-
-WebSocketClient* g_wsClient = nullptr;
-std::string GUI::unique_code = "";
->>>>>>> Stashed changes
 
 GUI::GUI(SDL_Window* window, SDL_Renderer* renderer)
     : m_window(window)
@@ -201,11 +193,7 @@ void GUI::initialOption()
             if (ImGui::Button("Join Session", ImVec2(250, 40)))
             {
                 std::cout << "Joining session: " << session_code << std::endl;
-<<<<<<< Updated upstream
                 this->ConnectAndJoinSession("ws://localhost:58058/ws", session_code);
-=======
-                ConnectAndJoinSession("ws://localhost:58058/ws", session_code);
->>>>>>> Stashed changes
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndDisabled();
@@ -233,12 +221,7 @@ void GUI::initialOption()
 
             if (ImGui::Button("Start Session", ImVec2(250, 40)))
             {
-<<<<<<< Updated upstream
                 this->ConnectAndCreateSession("ws://localhost:58058/ws", GUI::unique_code);
-=======
-                std::cout << "Starting session with code: " << GUI::unique_code << std::endl;
-                ConnectAndCreateSession("ws://localhost:58058/ws", GUI::unique_code);
->>>>>>> Stashed changes
                 ImGui::CloseCurrentPopup();
                 session_state = 0; // Reset for next time
             }
@@ -614,10 +597,7 @@ void GUI::newFrame()
         link.end_attr = end_attr;
         n_links.push_back(link);
         // send to the server the information about link creation
-<<<<<<< Updated upstream
         if (wsClient) wsClient->newLink(GUI::unique_code, link.id, link.init_attr, link.end_attr);
-=======
->>>>>>> Stashed changes
     }
 
     int dropped_attr;
@@ -820,7 +800,6 @@ std::string GUI::generate_unique_code() {
     return gen_part(4) + "-" + gen_part(5);
 }
 
-<<<<<<< Updated upstream
 int GUI::ConnectAndCreateSession(std::string route, std::string roomID) {
     if (!wsClient) {
         wsClient = new WebSocketClient(route);
@@ -857,20 +836,4 @@ SDL_Texture* LoadCursorImage(SDL_Renderer* renderer, const char* filename, int& 
     stbi_image_free(data);
 
     return texture;
-=======
-int ConnectAndCreateSession(std::string route, std::string roomID) {
-    if (!g_wsClient) {
-        g_wsClient = new WebSocketClient(route);
-        g_wsClient->create(roomID);
-    }
-    return 0;
-}
-
-int ConnectAndJoinSession(std::string route, std::string roomID) {
-    if (!g_wsClient) {
-        g_wsClient = new WebSocketClient(route);
-        g_wsClient->join(roomID);
-    }
-    return 0;
->>>>>>> Stashed changes
 }
