@@ -309,7 +309,7 @@ void GUI::newFrame()
                 curlpp::Cleanup myCleanup;
                 curlpp::Easy request;
 
-                std::string download_url = "http://localhost:58058/download/" + pending.id;
+                std::string download_url = "http://localhost:58058/download/" + pending.id + "/" + GUI::unique_code;
                 request.setOpt(curlpp::options::Url(download_url));
 
                 std::ostringstream response_stream;

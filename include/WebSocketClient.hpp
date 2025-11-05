@@ -158,7 +158,6 @@ private:
                         int height = (*data_ptr)[2].get<int>();
                         int channels = (*data_ptr)[3].get<int>();
                         if (m_imageUploadCallback) m_imageUploadCallback(url, width, height, channels);
-                        std::cout << "Image URL: " << url << ", Width: " << width << ", Height: " << height << std::endl;
                     }
                 } catch (const std::exception& e) {
                     std::cout << "⚠️ JSON parse error: " << e.what() << std::endl;
