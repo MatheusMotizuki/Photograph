@@ -285,21 +285,13 @@ void GUI::InitializeCallbacks() {
             );
         });
 
-        wsClient->setImageUploadCallback([this](const std::string& room, std::vector<uint8_t> pixels, int width, int height, int channels) {
-            // Set the image in the InputNode and update its data
-            for (auto& node : n_nodes) {
-                if (auto* inputNode = dynamic_cast<InputNode*>(node.get())) {
-                    inputNode->output_image.width = width;
-                    inputNode->output_image.height = height;
-                    inputNode->output_image.channels = channels;
-                    inputNode->output_image.pixels = pixels;
-                    inputNode->SetImageData(inputNode->output_image);
-                    // inputNode->ImageLoaded = true; // Optionally trigger a refresh
-                    // You may want to update the SDL_Texture as well
-                }
+        wsClient->setImageUploadCallback([this](std::string id, int width, int height, int channels) {
+            try {
+                std::lock_guard<std::mutex> lock(m_pendingImagesMtx);
+                m_pendingImages.push_back({id, width, height, channels});
+            } catch (const std::exception& e) {
+                std::cerr << "Image download failed: " << e.what() << std::endl;
             }
-            // Optionally, log or display a message
-            std::cout << "Received image upload for room: " << room << " (" << width << "x" << height << ")" << std::endl;
         });
     }
 }
@@ -309,6 +301,104 @@ void GUI::newFrame()
     ImGui_ImplSDLRenderer2_NewFrame();
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
+
+    {
+        std::lock_guard<std::mutex> lock(m_pendingImagesMtx);
+        for (const auto& pending : m_pendingImages) {
+            try {
+                curlpp::Cleanup myCleanup;
+                curlpp::Easy request;
+
+                std::string download_url = "http://localhost:58058/download/" + pending.id;
+                request.setOpt(curlpp::options::Url(download_url));
+
+                std::ostringstream response_stream;
+                request.setOpt(curlpp::options::WriteStream(&response_stream));
+                request.perform();
+                std::string image_data = response_stream.str();
+
+                int img_width = 0, img_height = 0, img_channels = 0;
+                unsigned char* img_pixels = stbi_load_from_memory(
+                    reinterpret_cast<const unsigned char*>(image_data.data()),
+                    image_data.size(),
+                    &img_width, &img_height, &img_channels, 0
+                );
+
+                if (img_pixels) {
+                    for (auto& node : n_nodes) {
+                        if (auto* inputNode = dynamic_cast<InputNode*>(node.get())) {
+                            // Free previous resources
+                            if (inputNode->GetTexture()) {
+                                SDL_DestroyTexture(inputNode->GetTexture());
+                                inputNode->SetTexture(nullptr);
+                            }
+                            if (inputNode->GetImageData()) {
+                                stbi_image_free(inputNode->GetImageData());
+                                inputNode->SetImageData(nullptr);
+                            }
+
+                            // Clear output_image
+                            inputNode->output_image.pixels.clear();
+                            inputNode->output_image.width = 0;
+                            inputNode->output_image.height = 0;
+                            inputNode->output_image.channels = 0;
+
+                            // Allocate new image data
+                            size_t img_size = img_width * img_height * img_channels;
+                            unsigned char* new_image_data = (unsigned char*)malloc(img_size);
+                            
+                            if (new_image_data) {
+                                memcpy(new_image_data, img_pixels, img_size);
+
+                                // Create SDL surface and texture
+                                SDL_Surface* surface = nullptr;
+                                if (img_channels == 4) {
+                                    surface = SDL_CreateRGBSurfaceFrom(
+                                        (void*)new_image_data, img_width, img_height, 32, img_width * 4,
+                                        0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+                                } else if (img_channels == 3) {
+                                    surface = SDL_CreateRGBSurfaceFrom(
+                                        (void*)new_image_data, img_width, img_height, 24, img_width * 3,
+                                        0x000000ff, 0x0000ff00, 0x00ff0000, 0);
+                                }
+
+                                if (surface) {
+                                    SDL_Texture* new_texture = SDL_CreateTextureFromSurface(inputNode->GetRenderer(), surface);
+                                    SDL_FreeSurface(surface);
+
+                                    if (new_texture) {
+                                        inputNode->SetTexture(new_texture);
+                                        inputNode->SetTexWidth(img_width);
+                                        inputNode->SetTexHeight(img_height);
+                                        inputNode->SetImageData(new_image_data);
+
+                                        // Update output_image
+                                        inputNode->output_image.width = img_width;
+                                        inputNode->output_image.height = img_height;
+                                        inputNode->output_image.channels = img_channels;
+                                        inputNode->output_image.pixels.assign(
+                                            img_pixels, img_pixels + img_width * img_height * img_channels
+                                        );
+                                        inputNode->SetImageLoaded(true);
+                                        inputNode->SetNewImageUploaded(false);
+                                    } else {
+                                        free(new_image_data);
+                                    }
+                                } else {
+                                    free(new_image_data);
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    stbi_image_free(img_pixels);
+                }
+            } catch (const std::exception& e) {
+                std::cerr << "Image processing failed: " << e.what() << std::endl;
+            }
+        }
+        m_pendingImages.clear();
+    }
 
     initialOption();
 
@@ -378,6 +468,7 @@ void GUI::newFrame()
                 ImVec2 pos = ImNodes::GetNodeScreenSpacePos(id);
                 if (wsClient) wsClient->sendSelectedNode(GUI::unique_code, id, pos);
             }
+            
             selected_nodes.insert(node->GetId());
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Right, false)) {
                 ImGui::OpenPopup((node->GetInternalTitle() + "_" + std::to_string(node->GetId())).c_str());
@@ -513,14 +604,15 @@ void GUI::newFrame()
     // First pass: process all nodes with their current input
     for (auto& node : n_nodes) {
         node->Process();
-
-        if (auto* inputNode = dynamic_cast<InputNode*>(node.get())) {
-            if (inputNode->ImageLoaded) {
-                const ImageData& img = inputNode->GetImageData();
-                wsClient->sendImage(GUI::unique_code, img.pixels, img.width, img.height, img.channels);
-                inputNode->ImageLoaded = false;
-
-                inputNode->SetImageData(img);
+        
+        
+        if (wsClient) {
+            if (auto* inputNode = dynamic_cast<InputNode*>(node.get())) {
+                const ImageData& img = inputNode->output_image;
+                if (inputNode->NewImageUploaded && !img.pixels.empty() && img.width > 0 && img.height > 0 && img.channels > 0) {
+                    wsClient->sendImage(GUI::unique_code, img.pixels, img.width, img.height, img.channels);
+                    inputNode->NewImageUploaded = false;
+                }
             }
         }
     }

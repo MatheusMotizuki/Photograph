@@ -12,6 +12,10 @@
 #include <functional>
 #include <unordered_map>
 
+#include <curlpp/cURLpp.hpp>
+#include <curlpp/Options.hpp>
+#include <curlpp/Easy.hpp>
+
 #include "stb_image_write.h"
 
 class WebSocketClient {
@@ -25,7 +29,7 @@ public:
     using SelectedNodeCallback = std::function<void(int node_id, ImVec2 pos)>;
     using NodeDeletedCallback = std::function<void(int node_id)>;
     using LinkDeletedCallback = std::function<void(int link_id)>;
-    using ImageUploadCallback = std::function<void(const std::string& room, std::vector<uint8_t> pixels, int width, int height, int channels)>;
+    using ImageUploadCallback = std::function<void(std::string url, int width, int height, int channels)>;
 
     // Setters for callbacks
     void setNodeCreatedCallback(NodeCreatedCallback cb) { m_nodeCreatedCallback = std::move(cb); }
@@ -148,15 +152,14 @@ private:
                     } else if (topic == "room.link.delete") {
                         int link_id = (*data_ptr)[0].get<int>();
                         if (m_linkDeletedCallback) m_linkDeletedCallback(link_id);
-                    } else if (topic == "room.image.upload") {
-                        std::string room_id = j.contains("room_id") ? j["room_id"].get<std::string>() : "";
+                    } else if (topic == "room.image.share") {
+                        std::string url = (*data_ptr)[0].get<std::string>();
                         int width = (*data_ptr)[1].get<int>();
                         int height = (*data_ptr)[2].get<int>();
                         int channels = (*data_ptr)[3].get<int>();
-                        std::vector<uint8_t> pixels = (*data_ptr)[4].get<std::vector<uint8_t>>();
-                        if (m_imageUploadCallback) m_imageUploadCallback(room_id, pixels, width, height, channels);
+                        if (m_imageUploadCallback) m_imageUploadCallback(url, width, height, channels);
+                        std::cout << "Image URL: " << url << ", Width: " << width << ", Height: " << height << std::endl;
                     }
-                    // Add more events as needed
                 } catch (const std::exception& e) {
                     std::cout << "⚠️ JSON parse error: " << e.what() << std::endl;
                 }
@@ -222,30 +225,42 @@ private:
     }
 
     void imageInfo(const std::string& room, std::vector<uint8_t> pixels, int width, int height, int channels) {
-        if (!m_running.load() || !m_webSocket || room.empty()) return;
+        try{
+            curlpp::Cleanup myCleanup;
+            curlpp::Easy request;
 
-        // Compress to JPEG
-        std::vector<uint8_t> compressed;
-        auto write_func = [](void* context, void* data, int size) {
-            auto* buf = static_cast<std::vector<uint8_t>*>(context);
-            buf->insert(buf->end(), (uint8_t*)data, (uint8_t*)data + size);
-        };
-        int quality = 90;
-        stbi_write_jpg_to_func(write_func, &compressed, width, height, channels, pixels.data(), quality);
+            std::vector<uint8_t> compressed;
+            auto write_func = [](void* context, void* data, int size) {
+                auto* buf = static_cast<std::vector<uint8_t>*>(context);
+                buf->insert(buf->end(), (uint8_t*)data, (uint8_t*)data + size);
+            };
+            int quality = 90;
+            stbi_write_jpg_to_func(write_func, &compressed, width, height, channels, pixels.data(), quality);
 
-        nlohmann::json msg;
-        msg["topic"] = "room.image.upload";
-        msg["room_id"] = room;
-        msg["data"] = {"jpg", width, height, channels, compressed};
-        // msg["format"] = "jpg";
-        // msg["width"] = width;
-        // msg["height"] = height;
-        // msg["channels"] = channels;
-        // msg["size"] = compressed.size();
-        m_webSocket->send(msg.dump());
+            std::string url = "http://localhost:58058/upload";
+            request.setOpt(curlpp::options::Url(url));
+            std::string post_data(reinterpret_cast<char*>(compressed.data()), compressed.size());
+            request.setOpt(curlpp::options::PostFields(post_data));
+            request.setOpt(curlpp::options::PostFieldSize(post_data.size()));
+            request.setOpt(curlpp::options::HttpHeader({"Content-Type: image/jpg"}));
 
-        // // Send binary image data
-        // m_webSocket->send(std::string(reinterpret_cast<const char*>(compressed.data()), compressed.size()), true);
+            std::ostringstream response_stream;
+            request.setOpt(curlpp::options::WriteStream(&response_stream));
+            request.perform();
+            std::string response = response_stream.str();
+
+            auto resp = nlohmann::json::parse(response);
+            std::string image_url = resp["id"];
+
+            nlohmann::json msg;
+            msg["topic"] = "room.image.share";
+            msg["room_id"] = room;
+            msg["data"] = { image_url, width, height, channels };
+            m_webSocket->send(msg.dump());
+
+        } catch (const std::exception& e) {
+            std::cout << "❌ Image upload failed: " << e.what() << std::endl;
+        }
     }
 
     std::string m_url;
