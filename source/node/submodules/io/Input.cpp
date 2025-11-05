@@ -102,6 +102,7 @@ void InputNode::NodeContent() {
                 output_image.channels = og_chans;
                 output_image.pixels.assign(final_data, final_data + final_width * final_height * og_chans);
                 ImageLoaded = true;
+                NewImageUploaded = true;
             }
         }
     }

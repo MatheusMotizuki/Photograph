@@ -31,6 +31,15 @@ private:
     int cursor_width = 0;
     int cursor_height = 0;
 
+    struct PendingImage {
+        std::string id;
+        int width;
+        int height;
+        int channels;
+    };
+    std::mutex m_pendingImagesMtx;
+    std::vector<PendingImage> m_pendingImages;
+
     // websocket
     WebSocketClient* wsClient = nullptr;
 

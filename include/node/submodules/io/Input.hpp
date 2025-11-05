@@ -35,7 +35,19 @@ public:
     void Description() override;
     void ProcessInternal() override;
 
-    // const ImageData& GetImageData() const { return output_image; }
-    // void SetImageData(const ImageData& image) { output_image = image; }
+    // Setters
+    void SetImageData(unsigned char* image_data) { m_image_data = image_data; }
+    void SetRenderer(SDL_Renderer* renderer) { m_renderer = renderer; }
+    void SetTexture(SDL_Texture* texture) { m_texture = texture; }
+    void SetImageLoaded(bool loaded) { ImageLoaded = loaded; }
+    void SetNewImageUploaded(bool uploaded) { NewImageUploaded = uploaded; }
+    void SetTexWidth(int w) { m_tex_w = w; }
+    void SetTexHeight(int h) { m_tex_h = h; }
+
+    SDL_Texture* GetTexture() const { return m_texture; }
+    unsigned char* GetImageData() const { return m_image_data; }
+    SDL_Renderer* GetRenderer() const { return m_renderer; }
+
     bool ImageLoaded = false;
+    bool NewImageUploaded = false;
 };

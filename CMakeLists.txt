@@ -53,6 +53,18 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(ixwebsocket)
 
+set(CURL_USE_STATIC_LIBS ON)
+find_package(CURL REQUIRED)
+
+# Fetch curlpp
+FetchContent_Declare(
+    curlpp
+    GIT_REPOSITORY https://github.com/jpbarrette/curlpp.git
+    GIT_TAG master
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(curlpp)
+
 # Configure ImGui source files
 set(IMGUI_SOURCES
     ${imgui_SOURCE_DIR}/imgui.cpp
@@ -96,6 +108,8 @@ target_include_directories(photoGraph PRIVATE
     ${imgui_SOURCE_DIR}/backends
     ${imnodes_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${curlpp_SOURCE_DIR}/src
+    ${CURL_INCLUDE_DIRS}
 )
 
 if (WIN32)
@@ -112,12 +126,16 @@ if (WIN32)
         SDL2::SDL2main
         ixwebsocket
         ZLIB::ZLIB
+        CURL::libcurl
+        curlpp
     )
 else()
     target_link_libraries(photoGraph PRIVATE 
         SDL2::SDL2-static
         SDL2::SDL2main
         ixwebsocket
+        CURL::libcurl
+        curlpp
     )
 endif()
 
