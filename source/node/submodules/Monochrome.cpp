@@ -1,4 +1,5 @@
 #include "node/submodules/Monochrome.hpp"
+#include <opencv2/imgproc.hpp>
 
 MonochromeNode::MonochromeNode() : NodeBase("Monochrome Node", PinType::Both, "monochrome_node", true, ImVec4(0.0f, 1.0f, 1.0f, 1.0f)) {}
 MonochromeNode::~MonochromeNode() {}
@@ -17,12 +18,23 @@ void MonochromeNode::NodeContent() {
 
 void MonochromeNode::ProcessInternal() {
     if (!input_image.isValid()) return;
+    
     output_image = input_image;
-    for (int i = 0; i < output_image.width * output_image.height; ++i) {
-        unsigned char* pixel = &output_image.pixels[i * output_image.channels];
-        unsigned char gray = static_cast<unsigned char>(
-            0.299f * pixel[0] + 0.587f * pixel[1] + 0.114f * pixel[2]);
-        pixel[0] = pixel[1] = pixel[2] = gray;
+    
+    // Create OpenCV Mat from image data
+    cv::Mat img(output_image.height, output_image.width, 
+                output_image.channels == 4 ? CV_8UC4 : CV_8UC3, 
+                output_image.pixels.data());
+    
+    // Convert to grayscale using OpenCV (highly optimized)
+    if (output_image.channels == 4) {
+        cv::Mat gray;
+        cv::cvtColor(img, gray, cv::COLOR_BGRA2GRAY);
+        cv::cvtColor(gray, img, cv::COLOR_GRAY2BGRA);
+    } else {
+        cv::Mat gray;
+        cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
+        cv::cvtColor(gray, img, cv::COLOR_GRAY2BGR);
     }
 }
 

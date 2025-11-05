@@ -1,4 +1,5 @@
 #include "node/submodules/RGB.hpp"
+#include <opencv2/core.hpp>
 
 RGBNode::RGBNode() : NodeBase("RGB Node", PinType::Both, "rgb_node", true, ImVec4(0.2f, 0.6f, 0.9f, 1.0f)) {}
 RGBNode::~RGBNode() {}
@@ -12,11 +13,11 @@ void RGBNode::NodeContent() {
     ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 3));
     
-    ImGui::SetNextItemWidth(80);
+    ImGui::SetNextItemWidth(128);
     ImGui::SliderInt("R", &m_r, -128, 128, "R %d");
-    ImGui::SetNextItemWidth(80);
+    ImGui::SetNextItemWidth(128);
     ImGui::SliderInt("G", &m_g, -128, 128, "G %d");
-    ImGui::SetNextItemWidth(80);
+    ImGui::SetNextItemWidth(128);
     ImGui::SliderInt("B", &m_b, -128, 128, "B %d");
     
     ImGui::PopStyleVar(3);
@@ -26,13 +27,15 @@ void RGBNode::ProcessInternal() {
     if (!input_image.isValid()) return;
 
     output_image = input_image;
-    int channels = output_image.channels;
-    for (int i = 0; i < output_image.width * output_image.height; ++i) {
-        unsigned char* pixel = &output_image.pixels[i * channels];
-        pixel[0] = static_cast<unsigned char>(std::clamp(int(pixel[0]) + m_r, 0, 255));
-        pixel[1] = static_cast<unsigned char>(std::clamp(int(pixel[1]) + m_g, 0, 255));
-        pixel[2] = static_cast<unsigned char>(std::clamp(int(pixel[2]) + m_b, 0, 255));
-    }
+    
+    // Create OpenCV Mat from image data
+    cv::Mat img(output_image.height, output_image.width, 
+                output_image.channels == 4 ? CV_8UC4 : CV_8UC3, 
+                output_image.pixels.data());
+    
+    // Add scalar to each channel using OpenCV (vectorized operation)
+    cv::Scalar adjustment(m_r, m_g, m_b, 0);
+    cv::add(img, adjustment, img);
 }
 
 void RGBNode::Description() {
