@@ -11,7 +11,7 @@ unsigned int BlurNode::GetBorderColor() const {
 }
 
 void BlurNode::NodeContent() {
-    static const char* blurTypes[] = { "Gaussian", "Box", "Median" };
+    static const char* blurTypes[] = { "Gaussian", "Box" };
 
     setStyleCombo();
     ImGui::PushItemWidth(150);
@@ -26,6 +26,8 @@ void BlurNode::NodeContent() {
     ImGui::SliderInt("##blur_amount", &m_blur_amount, 0, 30, "Amount: %d");
     ImGui::PopItemWidth();
     popStyleSlider();
+
+    ImGui::TextDisabled("this node can cause significant lag.");
     
     if (prev_blur_amount != m_blur_amount || prev_blur_type != m_blur_type) {
         MarkNeedsReprocess();
@@ -84,9 +86,6 @@ void BlurNode::ProcessInternal() {
             break;
         case 1: // Box
             cv::blur(img, img, cv::Size(kernel_size, kernel_size));
-            break;
-        case 2: // Median
-            cv::medianBlur(img, img, kernel_size);
             break;
     }
 }
