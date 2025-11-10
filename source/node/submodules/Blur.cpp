@@ -2,7 +2,7 @@
 #include <opencv2/imgproc.hpp>
 
 BlurNode::BlurNode() : NodeBase("Blur Node", PinType::Both, "blur_node", true, ImVec4(1.0f, 0.37f, 0.0f, 1.0f)) {
-    SetProcessDelay(100.0f); // Reduced delay since OpenCV is much faster
+    SetProcessDelay(175.0f);
 }
 BlurNode::~BlurNode() {}
 
@@ -77,7 +77,7 @@ void BlurNode::ProcessInternal() {
     
     // Map blur amount to kernel size (must be odd)
     int kernel_size = (m_blur_amount / 5) * 2 + 1;
-    kernel_size = std::max(3, std::min(kernel_size, 30)); // Clamp between 3 and 31
+    kernel_size = std::max(3, std::min(kernel_size, 31));
     
     // Apply appropriate blur using OpenCV (highly optimized with SIMD)
     switch (m_blur_type) {
