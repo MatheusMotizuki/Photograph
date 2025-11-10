@@ -2,7 +2,10 @@
 FROM emscripten/emsdk:3.1.60 as wasm-builder
 
 WORKDIR /workspace
-RUN apt-get update && apt-get install -y ninja-build git cmake
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ninja-build git cmake \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY . /workspace
 RUN emcmake cmake -G Ninja -B build-web && cmake --build build-web
