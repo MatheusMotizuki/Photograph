@@ -32,6 +32,7 @@
 ### Linux
 
 > vcpkg maybe not the best option for linux, but it is what it is, maybe in the future i'll remake this.
+> but if you just install them on your linux computer, it will automatically find them via findPackage (I think)
 
 1. **Install vcpkg**
    ```bash
