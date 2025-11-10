@@ -31,8 +31,7 @@
 
 ### Linux
 
-> vcpkg is not the best suited for linux, but I'm to lazy to make a proper version.
-> if whoever is reading this wants to contribute, feel free to make it.
+> vcpkg maybe not the best option for linux, but it is what it is, maybe in the future i'll remake this.
 
 1. **Install vcpkg**
    ```bash
