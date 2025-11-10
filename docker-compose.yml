@@ -1,0 +1,5 @@
+services:
+  photograph-backend:
+    build: .
+    ports:
+      - "58058:58058"
