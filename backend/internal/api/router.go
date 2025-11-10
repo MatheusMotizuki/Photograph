@@ -14,9 +14,7 @@ func Route() *mux.Router {
 			http.ServeFile(w, r, "./internal/static/index.html")
 		}).Methods("GET")
 
-	r.HandleFunc("/app", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./internal/static/shell_minimal.html")
-	}).Methods("GET")
+	r.PathPrefix("/app/").Handler(http.StripPrefix("/app/", http.FileServer(http.Dir("./internal/static/wasm/"))))
 
 	return r
 }

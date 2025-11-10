@@ -14,7 +14,7 @@ WORKDIR /app
 
 COPY backend /app/backend
 
-COPY --from=wasm-builder /workspace/build-web /app/backend/internal/static/wasm
+COPY --from=wasm-builder /workspace/build-web/index.{html,wasm,js,data} /app/backend/internal/static/wasm/
 
 WORKDIR /app/backend/cmd/wasm
 
