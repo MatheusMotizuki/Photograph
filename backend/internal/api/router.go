@@ -11,12 +11,12 @@ func Route() *mux.Router {
 
 	r.HandleFunc("/",
 		func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "./internal/static/index.html")
+			http.ServeFile(w, r, "/app/backend/internal/static/index.html")
 		}).Methods("GET")
 
-	r.PathPrefix("/app/").Handler(
-		http.StripPrefix("/app/", http.FileServer(http.Dir("./internal/static/wasm/"))),
-	)
+	r.HandleFunc("/app/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "/app/backend/internal/static/wasm/index.html")
+	}).Methods("GET")
 
 	return r
 }
