@@ -15,9 +15,9 @@ func main() {
 	// create router
 	router := api.Route()
 
-	server := fmt.Sprintf(":%d", PORT)
+	server := fmt.Sprintf("0.0.0.0:%d", PORT)
 
-	fmt.Printf("Server running @%d\n", PORT)
+	fmt.Printf("Server running @%s\n", server)
 
 	err := http.ListenAndServe(server, router)
 	if err != nil {
