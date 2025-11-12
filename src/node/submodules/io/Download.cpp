@@ -116,7 +116,6 @@ void DownloadNode::NodeContent() {
                 }, png_data, png_size);
                 
                 STBIW_FREE(png_data);
-                std::cout << "Image download started (browser)" << std::endl;
             } else {
                 std::cerr << "Failed to encode image to PNG." << std::endl;
             }
@@ -163,7 +162,6 @@ void DownloadNode::ClearPreview() {
 }
 
 void DownloadNode::ProcessInternal() {
-    std::cout << "[DownloadNode] ProcessInternal called. Input valid: " << input_image.isValid() << std::endl;
     if (!input_image.isValid()) {
         ClearPreview();
         return;
@@ -173,7 +171,6 @@ void DownloadNode::ProcessInternal() {
     bool needs_update = !m_texture || m_last_pixels != input_image.pixels;
     
     if (needs_update) {
-        std::cout << "[DownloadNode] Updating texture with new image data." << std::endl;
         CreateTextureFromData(
             input_image.pixels.data(),
             input_image.width,
