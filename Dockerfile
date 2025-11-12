@@ -18,6 +18,8 @@ COPY --from=wasm-builder /workspace/build-web/index.js /app/backend/internal/sta
 COPY --from=wasm-builder /workspace/build-web/index.wasm /app/backend/internal/static/wasm/
 COPY --from=wasm-builder /workspace/build-web/index.data /app/backend/internal/static/wasm/
 
+COPY backend/internal/static/icon.svg /app/backend/internal/static/icon.svg
+
 WORKDIR /app/backend/cmd/wasm
 
 RUN go build -o server

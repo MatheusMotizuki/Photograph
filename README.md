@@ -1,4 +1,4 @@
-### Photograph
+![Photograph](backend/internal/static/icon_text.png)
 
 ## Build Instructions
 
