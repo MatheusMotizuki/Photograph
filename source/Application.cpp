@@ -9,13 +9,9 @@ Application::Application(const std::string& title, int width, int height)
     , m_window(nullptr)
     , m_renderer(nullptr)
     , m_gui(nullptr)
-{
-}
+{}
 
-Application::~Application()
-{
-    shutdown();
-}
+Application::~Application() = default;
 
 bool Application::initialize()
 {
@@ -62,6 +58,14 @@ bool Application::initialize()
     {
         std::cerr << "Error initializing GUI" << std::endl;
         return false;
+    }
+
+    // Load image and set as window icon
+    SDL_Surface* iconSurface = SDL_LoadBMP("assets/images/icon.bmp");
+    
+    if (iconSurface) {
+        SDL_SetWindowIcon(m_window, iconSurface);
+        SDL_FreeSurface(iconSurface);
     }
 
     m_running = true;
