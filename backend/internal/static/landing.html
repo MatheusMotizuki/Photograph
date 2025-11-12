@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;family=Mansalva&amp;display=swap" rel="stylesheet">
+    <title>PhotoGraph - Node-Based Photo Editing App</title>
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Lexend", sans-serif;
+        }
+
+        body {
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        header {
+            padding: 32px 0;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .github-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            color: #fff;
+            text-decoration: none;
+            border: 1px solid #333;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .github-link:hover {
+            background: #111;
+            border-color: #555;
+        }
+
+        .hero {
+            padding: 280px 0 80px;
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 5em;
+            font-weight: 700;
+            letter-spacing: -2px;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            transition: all 0.2s;
+        }
+
+        .hero p {
+            font-size: 20px;
+            color: #999;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .hero span {
+            font-family: "Mansalva", sans-serif;
+            font-style: italic;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 14px 32px;
+            font-size: 16px;
+            font-weight: 500;
+            background: transparent;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 2px;
+            border: 1px solid #fff;
+            transition: all 0.2s ease;
+        }
+
+        .cta-button:hover {
+            color: #000;
+            background: #e0e0e0;
+        }
+
+        @media (max-width: 768px) {
+            .hero {
+                padding: 260px 0 80px;
+            }
+            .hero h1 {
+                font-size: 48px;
+            }
+            .hero p {
+                font-size: 18px;
+            }
+        }
+
+        @media (max-width: 425px) {
+            .hero {
+                padding: 60px 0 80px;
+            }
+            .hero h1 {
+                font-size: 48px;
+            }
+            .hero p {
+                font-size: 18px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .hero {
+                padding: 100px 0 80px;
+            }
+            .hero h1 {
+                font-size: 48px;
+            }
+            .hero p {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body><div id="brk_yuan"></div>
+    <header>
+        <nav class="container">
+            <div class="logo">
+                <img src="icon.svg" alt="PhotoGraph logo" width="32" height="32">
+                PhotoGraph
+            </div>
+            <a href="https://github.com/MatheusMotizuki/Photograph/tree/wasm" class="github-link" target="_blank">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+                GitHub
+            </a>
+        </nav>
+    </header>
+    <main>
+        <div class="container">
+            <section class="hero">
+                <h1>Photo editing, <span>reimagined!</span></h1>
+                <p>A simple and powerful tool to quickly edit images using visual editing methods.</p>
+                <a href="/app/" class="cta-button">Launch Editor</a>
+            </section>
+        </div>
+    </main>
+</body>
+</html>

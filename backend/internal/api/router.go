@@ -10,7 +10,7 @@ func Route() *mux.Router {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "/app/backend/internal/static/index.html")
+		http.ServeFile(w, r, "/app/backend/internal/static/landing.html")
 	}).Methods("GET")
 
 	r.HandleFunc("/icon.svg", func(w http.ResponseWriter, r *http.Request) {
