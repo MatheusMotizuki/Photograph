@@ -1,4 +1,4 @@
-### Photograph
+![photograph](assets/images/icon_text.png)
 
 ## Build Instructions
 
