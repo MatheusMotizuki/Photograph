@@ -1,11 +1,5 @@
 services:
   photograph-backend:
     build: .
-    expose:
-      - "58058"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.photograph.rule=Host(`photograph.motizuki.dev`)"
-      - "traefik.http.routers.photograph.entrypoints=websecure"
-      - "traefik.http.routers.photograph.tls=true"
-      - "traefik.http.services.photograph.loadbalancer.server.port=58058"
+    ports:
+      - "58058:58058"
