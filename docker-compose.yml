@@ -3,3 +3,6 @@ services:
     build: .
     ports:
       - "58058:58058"
+    environment:
+    - $SERVICE_FDQN_PHOTOGRAPH_58058
+    restart: unless-stopped
