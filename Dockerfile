@@ -1,12 +1,16 @@
 FROM emscripten/emsdk:4.0.19 as wasm-builder
 
 WORKDIR /workspace
+
 RUN apt update && apt install -y ninja-build
 
-COPY . /workspace
-RUN emcmake cmake -G Ninja -B build-web && cmake --build build-web
+RUN embuilder build sdl2
 
-# stage 2
+COPY . /workspace
+
+RUN emcmake cmake -G Ninja -B build-web && \
+    cmake --build build-web
+
 FROM golang:1.24
 
 WORKDIR /app
